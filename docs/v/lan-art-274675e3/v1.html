@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>构建状态板 Build Status Board</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --border: #2a3441;
+    --text: #e6edf3; --muted: #8b98a5;
+    --green: #2ea043; --green-bg: rgba(46,160,67,.15);
+    --red: #f85149; --red-bg: rgba(248,81,73,.15);
+    --amber: #d29922; --amber-bg: rgba(210,153,34,.15);
+    --gray: #6e7681; --gray-bg: rgba(110,118,129,.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding: 24px; max-width: 960px; margin: 0 auto;
+  }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  h1 { font-size: 20px; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; min-width: 110px;
+  }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .label { color: var(--muted); font-size: 12px; }
+  .job {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .icon {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  }
+  .icon.success { background: var(--green); }
+  .icon.failure { background: var(--red); }
+  .icon.running { background: var(--amber); animation: pulse 1.2s infinite; }
+  .icon.pending { background: var(--gray); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .info { flex: 1; min-width: 0; }
+  .name { font-weight: 600; }
+  .branch { color: var(--muted); font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge {
+    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 12px; flex-shrink: 0;
+  }
+  .badge.success { color: var(--green); background: var(--green-bg); }
+  .badge.failure { color: var(--red); background: var(--red-bg); }
+  .badge.running { color: var(--amber); background: var(--amber-bg); }
+  .badge.pending { color: var(--gray); background: var(--gray-bg); }
+  .meta { color: var(--muted); font-size: 12px; text-align: right; flex-shrink: 0; }
+  .meta .commit { font-family: ui-monospace, monospace; }
+  .commit { font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; color: var(--muted); background: rgba(139,152,165,.1); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⚙️ 构建状态板</h1>
+    <div class="sub" id="updated">更新于 --:--:--</div>
+  </div>
+</header>
+<div class="stats" id="stats"></div>
+<div id="jobs"></div>
+<script>
+const JOBS = [
+  { name: "gateway", branch: "main", status: "success", commit: "a1b2c3d", author: "张三", duration: "3m 12s", time: "10:02" },
+  { name: "web-frontend", branch: "main", status: "success", commit: "e4f5a6b", author: "李四", duration: "5m 47s", time: "09:58" },
+  { name: "mobile-app", branch: "release/2.4", status: "failure", commit: "c7d8e9f", author: "王五", duration: "8m 03s", time: "09:41" },
+  { name: "auth-service", branch: "feat/sso", status: "running", commit: "f0a1b2c", author: "赵六", duration: "1m 24s", time: "10:05" },
+  { name: "data-pipeline", branch: "main", status: "pending", commit: "3d4e5f6", author: "—", duration: "—", time: "等待队列" },
+  { name: "docs-site", branch: "main", status: "success", commit: "7a8b9c0", author: "孙七", duration: "1m 05s", time: "09:33" },
+];
+const LABELS = { success: "通过", failure: "失败", running: "运行中", pending: "等待" };
+const ORDER = { running: 0, failure: 1, pending: 2, success: 3 };
+const sorted = [...JOBS].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
+
+function render() {
+  const counts = {};
+  JOBS.forEach(j => counts[j.status] = (counts[j.status] || 0) + 1);
+  const stats = [
+    ["运行中", counts.running || 0, "running"],
+    ["失败", counts.failure || 0, "failure"],
+    ["通过", counts.success || 0, "success"],
+    ["等待", counts.pending || 0, "pending"],
+  ];
+  document.getElementById("stats").innerHTML = stats.map(([label, num, cls]) =>
+    `<div class="stat"><div class="num" style="color:var(--${cls})">${num}</div><div class="label">${label}</div></div>`
+  ).join("");
+  document.getElementById("jobs").innerHTML = sorted.map(j => `
+    <div class="job">
+      <div class="icon ${j.status}"></div>
+      <div class="info">
+        <div class="name">${j.name}</div>
+        <div class="branch">${j.branch} · 由 ${j.author} 触发</div>
+      </div>
+      <span class="badge ${j.status}">${LABELS[j.status]}</span>
+      <div class="meta">
+        <div>${j.duration}</div>
+        <div>${j.time} · <span class="commit">${j.commit}</span></div>
+      </div>
+    </div>`).join("");
+}
+render();
+document.getElementById("updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+setInterval(() => {
+  document.getElementById("updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+}, 5000);
+</script>
+</body>
+</html>

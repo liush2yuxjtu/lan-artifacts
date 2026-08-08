@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plugin-dev 安装 + winbrain_os MCP 真实测试报告</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:25px; }
+  .sub { color:var(--muted); margin:6px 0 22px; font-size:14px; }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .card h3 { font-size:15px; color:var(--brand); margin-bottom:6px; }
+  .card ul { padding-left:18px; font-size:13.5px; }
+  .card li { margin-bottom:4px; }
+  .ascii { background:#0b0f14; border:1px solid var(--line); border-radius:10px; padding:16px; overflow-x:auto; font-family:ui-monospace,Menlo,monospace; font-size:12px; white-space:pre; color:var(--ink); }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .tag.amber { background:#2e2612; color:#e5b568; border:1px solid #5a4a1f; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>plugin-dev 安装 + winbrain_os MCP 真实测试报告</h1>
+  <div class="sub">2026-08-07 · 更新：真实 DB cases 已跑通</div>
+
+  <h2>① plugin-dev 安装（已完成）</h2>
+  <div class="card">
+    <ul>
+      <li class="tag green">✅</li> 官方 marketplace 插件复制到 <code>~/.claude/plugins/cache/claude-plugins-official/plugin-dev/119f4ebf21f6/</code>
+      <li class="tag green">✅</li> <code>installed_plugins.json</code> 注册 user + project 双 scope（备份 .bak-plugin-dev）
+      <li class="tag green">✅</li> 含 <code>skills/mcp-integration</code>（SSE/stdio/HTTP/WebSocket 四型指南 + 鉴权/工具/示例）
+    </ul>
+  </div>
+
+  <h2>② winbrain_os MCP 实测（远程实例，真实 DB）</h2>
+  <div class="card">
+    <h3>目标</h3>
+    <code>http://192.168.26.166:3010/mcp/projects/yuntu-competitor-analysis</code>（经 7897 代理可达；本机直连 EHOSTUNREACH）
+    <h3 style="margin-top:10px">四层测试结果</h3>
+    <ul>
+      <li class="tag green">✅ 连通</li> <code>GET /health</code> → <code>{"status":"ok"}</code>
+      <li class="tag green">✅ 鉴权</li> 无 token → <b>401</b> <code>ONTOLOGY_MCP_AUTH_REQUIRED</code>；假 token → <b>403</b>（DB 解析拒绝）；真 <code>wbmcp_*</code> token → 200
+      <li class="tag green">✅ 工具发现</li> <code>get_context_pack · read_page · wiki_status · lint_wiki</code>（4 工具，实际清单）
+      <li class="tag green">✅ 数据问答</li> <code>get_context_pack(prompt)</code> 返回真实知识包：project=yuntu-competitor-analysis · knowledgeBaseVersion=019fd696… · <b>220 页 wiki</b> · 命中概念页 <code>QC_MATERIAL_YUNTU_BRAND_ACCOUNT</code>（云图-子账号品牌账户表）· 语义 chunk + 数据血缘 + 引用
+    </ul>
+    <h3 style="margin-top:10px">知识包样例（脱敏）</h3>
+    <div class="ascii">{
+  "project": "yuntu-competitor-analysis",
+  "knowledgeBaseVersion": "019fd696-…",
+  "project": { "pages": 220, "pendingCandidates": 0, "lint": null },
+  "primary": [{
+    "id": "concepts/qcmaterialyuntubrandaccount",
+    "title": "QC_MATERIAL_YUNTU_BRAND_ACCOUNT",
+    "score": 0.6,
+    "chunks": [{
+      "text": "- → [[QC_MONTAGE_BRAND]] (1:1) Join Key: …云图子账号与系统品牌一一对应…",
+      "score": 0.6839, "contentHash": "0adaaab9fdbb9bff"
+    }]
+  }]
+}</div>
+  </div>
+
+  <h2>③ 怎么测这个 MCP（中文）</h2>
+  <div class="card">
+    <ol style="padding-left:18px;font-size:13.5px">
+      <li><b>连通</b>：<code>curl http://192.168.26.166:3010/health</code>（直连不通时经 7897 代理）</li>
+      <li><b>鉴权</b>：无 token → 401；伪 <code>wbmcp_</code> → 403；合法 token（DB <code>ontology_mcp_projects</code> 解析）→ 200</li>
+      <li><b>工具</b>：标准 MCP Client（StreamableHTTPClientTransport + Bearer）initialize + listTools → 4 工具</li>
+      <li><b>数据</b>：<code>get_context_pack(prompt)</code> 返回项目知识包（220 页命中概念 + 血缘引用）；<code>read_page</code> 读单页全文；<code>wiki_status</code> 查编译状态；<code>lint_wiki</code> 校验 wiki 链接</li>
+      <li><b>接入 DeepSeek pane</b>：把 gateway 配进 <code>--strict-mcp-config</code> 后直接问业务问题</li>
+      <li><b>本仓库链路</b>：<code>config/mcp-servers.local.json</code> 已配 <code>winbrain-yuntu</code>（alwaysLoad）→ <code>npm run smoke:mcp</code>（并行 agent 已加）</li>
+    </ol>
+  </div>
+
+  <h2>④ 遗留</h2>
+  <div class="card">
+    <ul>
+      <li class="tag amber">pnpm install</li> 本机 winbrain_os 源码安装被 next/swc 大包下载 error 23 卡住 — <b>已不需要</b>（远程实例已运行）；如仍需本地源码跑：<code>--filter ontology-mcp-gateway...</code> 或跳过 web 依赖
+      <li class="tag amber">Qwen key</li> 远程实例知识已编译（220 页）— 无需本机 key
+      <li class="tag blue">下一步</li> 把 winbrain-yuntu 配进 DeepSeek 测试 pane（strict-mcp-config），在"新建专家/专家聊天"流程里实测问答
+    </ul>
+  </div>
+</div>
+</body>
+</html>

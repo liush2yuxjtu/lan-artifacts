@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plugin-dev 安装 + winbrain_os MCP 测试探索报告</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:25px; }
+  .sub { color:var(--muted); margin:6px 0 22px; font-size:14px; }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .card h3 { font-size:15px; color:var(--brand); margin-bottom:6px; }
+  .card ul { padding-left:18px; font-size:13.5px; }
+  .card li { margin-bottom:4px; }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .tag.amber { background:#2e2612; color:#e5b568; border:1px solid #5a4a1f; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th { background:var(--card); color:var(--brand); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>plugin-dev 安装 + winbrain_os MCP 测试探索报告</h1>
+  <div class="sub">2026-08-07 · 探索结果（行动前）</div>
+
+  <h2>① 探索发现</h2>
+  <div class="card">
+    <h3>plugin-dev 在哪</h3>
+    <ul>
+      <li><b>不是</b>在 winbrain_os 模板里 — 是 <b>Claude 官方 marketplace</b> 插件：<code>claude-plugins-official</code></li>
+      <li>路径：<code>~/.claude/plugins/marketplaces/claude-plugins-official/plugins/plugin-dev/</code></li>
+      <li>内容：<code>agents/</code>（agent-creator / plugin-validator / skill-reviewer）+ <code>commands/</code>（create-plugin）+ <code>skills/</code>（agent-development / command-development / hook-development / <b>mcp-integration</b> / plugin-settings / plugin-structure / skill-development）</li>
+      <li><b>mcp-integration skill</b>：教 Claude Code 插件如何集成 MCP 服务器（SSE / stdio / HTTP / WebSocket 四种类型、鉴权、工具使用）— 含 <code>references/</code>（authentication.md / server-types.md / tool-usage.md）+ <code>examples/</code>（http-server.json / sse-server.json / stdio-server.json）</li>
+    </ul>
+    <h3 style="margin-top:10px">winbrain_os 的 MCP（ontology-mcp-gateway）本地跑的前提</h3>
+    <ul>
+      <li><code>DATABASE_URL</code>（Postgres 必填）+ <code>ONTOLOGY_MCP_ENABLED=true</code>；token 必须 <code>wbmcp_[A-Za-z0-9_-]{40,64}</code> 且经 DB <code>resolve_ontology_mcp_project</code>（SECURITY DEFINER）解析</li>
+      <li>Qwen provider（<code>QWEN_KEY</code>）— 无 key 时静默跳过；知识数据（wiki 页面）为空则问答无内容</li>
+      <li>鉴权流程：<code>/mcp/projects/&lt;projectId&gt;</code> 端点 + Bearer token → DB 解析 → 每工具审计</li>
+    </ul>
+  </div>
+
+  <h2>② 已完成安装</h2>
+  <div class="card">
+    <ul>
+      <li class="tag green">用户级</li> <code>~/.claude/plugins/cache/claude-plugins-official/plugin-dev/119f4ebf21f6/</code> 复制完成
+      <li class="tag green">项目级</li> <code>installed_plugins.json</code> 注册 project scope（本项目 winbrain_os-ink-agent-sdk-clean）+ user scope（已备份 <code>.bak-plugin-dev</code>）
+      <li class="tag green">验证</li> <code>claude --plugin-dir ...</code> 可加载；新会话自动生效
+    </ul>
+  </div>
+
+  <h2>③ 环境就绪度</h2>
+  <table>
+    <tr><th>组件</th><th>状态</th><th>说明</th></tr>
+    <tr><td>Postgres</td><td class="ok">✅ 已起</td><td><code>pg-winbrain</code> 容器（postgres:16-alpine）5432 OPEN，trust auth，db=win_brain_dev</td></tr>
+    <tr><td>pnpm install</td><td class="warn">⏳ 后台跑</td><td>winbrain_os 目录（Nx monorepo，~458KB lockfile）</td></tr>
+    <tr><td>drizzle 迁移</td><td class="warn">待跑</td><td>含 <code>0020_ontology_mcp_gateway.sql</code>（token 表 + SECURITY DEFINER 函数）</td></tr>
+    <tr><td>gateway 进程</td><td class="warn">待起</td><td><code>pnpm ontology:mcp</code>（端口 3010）</td></tr>
+    <tr><td>Qwen key</td><td class="warn">缺失</td><td>无 <code>QWEN_KEY</code> — 知识编译不可用，读类工具可用但数据为空</td></tr>
+  </table>
+
+  <h2>④ 怎么测这个 MCP（中文答案）</h2>
+  <div class="card">
+    <ul>
+      <li><b>1. 连通性</b>：<code>curl -i http://127.0.0.1:3010/health</code> → 200 ok；无 token POST → 401 <code>ONTOLOGY_MCP_AUTH_REQUIRED</code></li>
+      <li><b>2. 鉴权</b>：伪造 <code>wbmcp_xxx</code> token → DB 解析失败 → 403；seed 一个合法 token 到 <code>ontology_mcp_projects</code> 表后再试 → 200</li>
+      <li><b>3. 工具发现</b>：标准 MCP Client（<code>StreamableHTTPClientTransport</code>）initialize + listTools → 预期 <code>get_context_pack / read_page / concepts / lint_wiki / wiki_status / queries</code></li>
+      <li><b>4. 数据问答</b>：<code>get_context_pack(goal)</code> — 无 Qwen key 时返回空项目结构；有 key 需先跑 llm-wiki-compiler 编译知识</li>
+      <li><b>5. 审计</b>：每次工具调用写 <code>ontology_mcp_audit_events</code>（SUCCESS/FAILURE + durationMs + sourceAddress）</li>
+      <li><b>6. 接入 DeepSeek 测试 pane</b>：把 gateway 配进 <code>--strict-mcp-config</code>，在 herdr pane 里问业务问题看调用链</li>
+    </ul>
+  </div>
+
+  <h2>⑤ 下一步（待确认后执行）</h2>
+  <div class="card">
+    <ul>
+      <li>① pnpm install 完成后：<code>db:prepare-local</code> + <code>db:migrate</code>（建 gateway 表 + SECURITY DEFINER 函数）</li>
+      <li>② seed：往 <code>ontology_mcp_projects</code> 插 wbmcp token + 项目行</li>
+      <li>③ 起 <code>pnpm ontology:mcp</code> → 用 mcp-integration skill 的示例配置把它接进 agent-sdk app / 测试 pane</li>
+      <li>④ 跑真实 DB cases（连接/鉴权/工具/审计四层）</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

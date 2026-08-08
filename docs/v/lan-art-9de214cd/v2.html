@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>业务工厂后端选型：AgentBay 沙盒 vs Sandbox B</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; --bad:#f85149; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.65; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:26px; margin-bottom:6px; }
+  .sub { color:var(--muted); margin-bottom:24px; font-size:14px; }
+  h2 { font-size:19px; margin:28px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .verdict { display:flex; gap:12px; align-items:center; background:linear-gradient(135deg,#12281a,#171d24); border:1px solid var(--ok); border-radius:10px; padding:16px 18px; margin-bottom:8px; }
+  .verdict .big { font-size:18px; font-weight:700; color:var(--ok); }
+  .verdict .why { color:var(--muted); font-size:13.5px; margin-top:4px; }
+  .svgbox { background:#0b0f14; border:1px solid var(--line); border-radius:10px; padding:14px; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top; }
+  th { background:var(--card); color:var(--brand); font-weight:600; white-space:nowrap; }
+  td:first-child { font-weight:600; white-space:nowrap; color:var(--muted); }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  ul { padding-left:20px; } li { margin-bottom:6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:12px; }
+  .card h3 { font-size:15px; margin-bottom:8px; color:var(--brand); }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .flow { background:#0b0f14; border:1px solid var(--line); border-radius:8px; padding:12px 14px; font-size:13px; margin-top:8px; }
+  .flow b { color:var(--brand); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>业务工厂后端选型：Claude Agent SDK + AgentBay 沙盒 vs Sandbox B</h1>
+  <div class="sub">来源：业务工厂 v3 设计（对话生成 App 代码 → 预览 → 部署）移植到 WinBrain Creator OS TUI · 2026-08-07</div>
+
+  <div class="verdict">
+    <div>
+      <div class="big">✅ 推荐：Claude Agent SDK + AgentBay 沙盒（沙盒 A）</div>
+      <div class="why">设计的核心闭环（生成 → 预览 → 部署）直接命中 A 的既有能力；Web 业务工厂已经走 A，TUI 同路即双端一致；沙盒红线不变（仍是既有两套）。</div>
+    </div>
+  </div>
+
+  <h2>〇、架构图：业务工厂 App 生成闭环</h2>
+  <div class="svgbox">
+  <svg viewBox="0 0 920 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#8b98a5"/>
+      </marker>
+      <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <!-- 面板 A -->
+    <rect x="10" y="10" width="900" height="300" rx="10" fill="#12281a" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="28" y="36" fill="#3fb950" font-size="15" font-weight="700">推荐路径 · 沙盒 A（AgentBay 云端）— 业务工厂 App 生成闭环</text>
+
+    <!-- TUI -->
+    <rect x="30" y="58" width="140" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="100" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">TUI 业务工厂</text>
+    <text x="100" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">对话生成 · 发布</text>
+
+    <!-- CloudAgentWorkbench -->
+    <rect x="230" y="58" width="170" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="315" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">CloudAgentWorkbench</text>
+    <text x="315" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">会话状态机 · /resume</text>
+
+    <!-- AgentBay 沙盒 -->
+    <rect x="460" y="46" width="210" height="76" rx="8" fill="#12283e" stroke="#3fb950" stroke-width="1.4"/>
+    <text x="565" y="68" fill="#e6edf3" font-size="13" text-anchor="middle">AgentBay 沙盒</text>
+    <text x="565" y="86" fill="#8b98a5" font-size="11" text-anchor="middle">10 白名单工具</text>
+    <text x="565" y="102" fill="#8b98a5" font-size="11" text-anchor="middle">write_file · bash · read_file</text>
+
+    <!-- 产物校验 -->
+    <rect x="730" y="58" width="160" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="810" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">产物校验</text>
+    <text x="810" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">1–30 文件 · 大小上限</text>
+
+    <!-- 预览 -->
+    <rect x="230" y="150" width="170" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="315" y="172" fill="#e6edf3" font-size="13" text-anchor="middle">publish_preview</text>
+    <text x="315" y="190" fill="#8b98a5" font-size="11" text-anchor="middle">静态预览 30100–30199 · 1h TTL</text>
+
+    <!-- 发布快照 -->
+    <rect x="460" y="150" width="210" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="565" y="172" fill="#e6edf3" font-size="13" text-anchor="middle">发布版本快照</text>
+    <text x="565" y="190" fill="#8b98a5" font-size="11" text-anchor="middle">app.files + messages → status: published</text>
+
+    <!-- app.files 存储 -->
+    <rect x="30" y="150" width="140" height="52" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="100" y="172" fill="#e6edf3" font-size="13" text-anchor="middle">app.files</text>
+    <text x="100" y="190" fill="#8b98a5" font-size="11" text-anchor="middle">CodeFile[] + messages</text>
+
+    <!-- 箭头 行1 -->
+    <line x1="170" y1="84" x2="228" y2="84" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <text x="199" y="75" fill="#8b98a5" font-size="10.5" text-anchor="middle">generateAppCode</text>
+    <line x1="400" y1="84" x2="458" y2="84" stroke="#3fb950" stroke-width="1.6" marker-end="url(#arrG)"/>
+    <text x="429" y="75" fill="#8b98a5" font-size="10.5" text-anchor="middle">SDK 会话</text>
+    <line x1="670" y1="84" x2="728" y2="84" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <text x="699" y="75" fill="#8b98a5" font-size="10.5" text-anchor="middle">产物</text>
+
+    <!-- 箭头 行2 -->
+    <line x1="100" y1="110" x2="100" y2="148" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="315" y1="110" x2="315" y2="148" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="565" y1="122" x2="565" y2="148" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="810" y1="110" x2="810" y2="148" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+
+    <!-- 闭环回箭头 -->
+    <path d="M 810 176 C 880 176 880 250 640 250 C 500 250 480 250 480 208" fill="none" stroke="#d29922" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+    <text x="760" y="240" fill="#d29922" font-size="10.5">迭代修改（再对话）</text>
+
+    <!-- 面板 B -->
+    <rect x="10" y="330" width="900" height="180" rx="10" fill="#1a1712" stroke="#d29922" stroke-width="1.2"/>
+    <text x="28" y="356" fill="#d29922" font-size="15" font-weight="700">保留路径 · 沙盒 B（本地 Expert Sandbox）— Creator / 聊天 / 本地执行</text>
+
+    <rect x="30" y="376" width="150" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="105" y="398" fill="#e6edf3" font-size="13" text-anchor="middle">Creator 生成</text>
+    <text x="105" y="416" fill="#8b98a5" font-size="11" text-anchor="middle">专家/员工/项目</text>
+
+    <rect x="240" y="376" width="190" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="335" y="398" fill="#e6edf3" font-size="13" text-anchor="middle">本地 Expert Sandbox</text>
+    <text x="335" y="416" fill="#8b98a5" font-size="11" text-anchor="middle">OS Sandbox + PreToolUse 双门禁</text>
+
+    <rect x="490" y="376" width="180" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="580" y="398" fill="#e6edf3" font-size="13" text-anchor="middle">完整 SDK 工具集</text>
+    <text x="580" y="416" fill="#8b98a5" font-size="11" text-anchor="middle">.pi/local-sandboxes · 10min 销毁</text>
+
+    <rect x="730" y="376" width="160" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="810" y="398" fill="#e6edf3" font-size="13" text-anchor="middle">chat-artifacts</text>
+    <text x="810" y="416" fill="#8b98a5" font-size="11" text-anchor="middle">30 天项目导出</text>
+
+    <line x1="180" y1="402" x2="238" y2="402" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="430" y1="402" x2="488" y2="402" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="670" y1="402" x2="728" y2="402" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+
+    <text x="30" y="466" fill="#8b98a5" font-size="11.5">业务工厂不走 B：无预览机制、无现有构建通道、本地沙盒状态管理成本高。B 专注离线/低延迟/富工具场景。</text>
+  </svg>
+  </div>
+
+  <h2>一、两套沙盒对比</h2>
+  <table>
+    <tr><th>维度</th><th>沙盒 A（AgentBay 云端）</th><th>沙盒 B（本地 Expert Sandbox）</th></tr>
+    <tr><td>预览 / 部署</td><td class="ok">✅ 内置：<code>publish_preview</code> + <code>browser_takeover</code> + 静态预览（端口 30100–30199，1h TTL）→ 直接对应设计的 Preview / Deploy</td><td class="bad">❌ 无预览机制，需自建</td></tr>
+    <tr><td>现有业务工厂路径</td><td class="ok">✅ Web 业务工厂已走 AgentBay SSE 构建/停止/预览（<code>cloudAgentStream</code>/<code>startCloudPreview</code>/<code>stopCloudPreview</code>）</td><td class="bad">❌ 业务工厂无本地生成通道，从零接</td></tr>
+    <tr><td>工具面</td><td>10 个白名单工具：bash / read_file / write_file + publish_preview / browser_takeover / stop_preview + ontology 4 个 — 够代码生成</td><td class="ok">✅ 完整 Claude Agent SDK 工具集（更富）</td></tr>
+    <tr><td>隔离 / 安全</td><td>云端多租户隔离；文件限 <code>/tmp</code> + <code>/home/wuying</code>（禁符号链接/隐藏条目）；上传校验 ≤1MiB/文件、禁 .env/.pem/.key；错误一律脱敏</td><td>本地 lease + OS Sandbox + PreToolUse 双门禁 fail closed；10 分钟空闲销毁；不继承宿主环境变量</td></tr>
+    <tr><td>延迟 / 依赖</td><td class="warn">远程往返，需 AgentBay key + 网络</td><td class="ok">✅ 本地快、可离线</td></tr>
+    <tr><td>复用度</td><td class="ok">✅ 复用 CloudAgentWorkbench 状态机（new/starting/ready/destroying）+ 云文件浏览器 + 会话恢复（<code>/resume</code>）</td><td class="ok">✅ 复用 runCreator 机制（lease / 凭据 / 产物校验 / credential 扫描）</td></tr>
+  </table>
+
+  <h2>二、为什么业务工厂选 A</h2>
+  <div class="card">
+    <ul>
+      <li><b>闭环直通：</b>生成（<code>write_file</code>/<code>bash</code>）→ 预览（<code>publish_preview</code>，端口+TTL 已实现）→ 部署（静态预览 = 设计 DeploymentModal 的后端）。沙盒 B 没有预览，要自己造。</li>
+      <li><b>双端一致：</b>Web 业务工厂已用 AgentBay 构建 — TUI 走同一条通道，不引入第二套构建体系。</li>
+      <li><b>沙盒红线不变：</b>仍是既有两套（A/B），只是业务工厂用例从 B 移到 A，与 Web 对齐。</li>
+      <li><b>生命周期契合：</b>应用代码是"生成 → 预览 → 丢弃"型资产，云沙盒的隔离边界天然合适，不留本地沙盒状态。</li>
+      <li><b>沙盒 B 继续保留给：</b>专家/员工/项目 Creator 生成、普通聊天、本地执行（完整工具集 + 离线 + 低延迟，现有机制成熟，不动）。</li>
+    </ul>
+  </div>
+
+  <h2>三、选 A 的代价（接受项）</h2>
+  <div class="card">
+    <ul>
+      <li class="warn">依赖 AgentBay key / 网络 — 无 key 时业务工厂生成不可用（fail closed，<b>不造假生成</b>，区别于 v3 设计的无 key 模板替换）</li>
+      <li class="warn">生成延迟更高（远程往返）</li>
+      <li class="warn">10 工具白名单比 B 的工具面窄（bash + read/write 可覆盖代码生成，但无 Edit/Glob 等）</li>
+    </ul>
+  </div>
+
+  <h2>四、落地设计（后端，不抄 UI）</h2>
+  <div class="card">
+    <h3>App 生命周期</h3>
+    <div class="flow"><b>创建 App</b>（既有 createApp） → <b>对话生成</b>（新） → <b>预览</b>（既有 publish_preview） → <b>发布版本快照</b>（新） → <b>回退</b>（新）</div>
+    <h3 style="margin-top:14px">新用例（application 层）</h3>
+    <ul>
+      <li><code>generateAppCode(appId, prompt)</code>：CloudAgentWorkbench 新会话 → AgentBay 沙盒内生成/修改代码 → 读取产物 → 校验（对齐现有上传规则）→ 存 <code>app.files</code> + 追加 <code>ChatMessage</code>（含 updatedFiles 变更清单）</li>
+      <li><code>publishApp(appId)</code> / <code>unpublishApp(appId)</code>：跑 blocker（无文件不可发布）→ 存版本快照 → status 切换</li>
+    </ul>
+    <h3 style="margin-top:14px">域模型扩展</h3>
+    <ul>
+      <li><code>BusinessApp</code>：<code>+status: "draft"|"published"</code>、<code>+files: CodeFile[]</code>、<code>+messages: ChatMessage[]</code>、<code>+model</code></li>
+      <li>纯函数：<code>validateAppFiles</code>（1–30 文件、大小上限）、<code>appPublicationBlocker</code></li>
+    </ul>
+    <h3 style="margin-top:14px">接入点</h3>
+    <ul>
+      <li>HTTP：<code>POST /api/v1/apps/:id/generate</code>（对齐 v3 <code>/api/chat</code> 协议：prompt+files+history）、<code>POST /api/v1/apps/:id/publish</code>、<code>GET /api/v1/apps/:id</code>（带 files/status）</li>
+      <li>TUI：业务工厂 App 详情加「对话生成」+「发布/回退」两段流程，复用 creator 屏流式渲染模式</li>
+    </ul>
+  </div>
+
+  <h2>五、实施顺序</h2>
+  <div class="card">
+    <ul>
+      <li>① 域模型 + 用例 + 存储（含 headless 测试）</li>
+      <li>② HTTP 端点（web 双端对齐）</li>
+      <li>③ TUI 屏：对话生成 + 发布/回退</li>
+      <li>④ 端到端验证（AgentBay 会话 smoke）</li>
+    </ul>
+    <div style="margin-top:10px;color:var(--muted);font-size:13px">测试中心（TestCase 执行）与多目标部署超出 v1 核心 — 首版做「生成 + 发布」闭环。</div>
+  </div>
+</div>
+</body>
+</html>

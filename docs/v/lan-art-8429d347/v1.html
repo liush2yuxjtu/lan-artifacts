@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>herdr-wecom-bot-bridge — CLI 使用说明</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#0f1115; color:#e6e8eb; margin:0; padding:32px 16px; line-height:1.6; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:#8b93a1; font-size:13px; margin-bottom:28px; }
+  pre { background:#171a21; border:1px solid #2a2f3a; border-radius:8px; padding:18px 20px; font-size:13px; overflow-x:auto; color:#d6dbe4; font-family:"SF Mono", Menlo, Consolas, monospace; white-space:pre; }
+  .section { margin-top:28px; }
+  .section h2 { font-size:15px; color:#8ab4f8; margin:0 0 10px; }
+  .flow { background:#171a21; border:1px solid #2a2f3a; border-radius:8px; padding:16px 20px; font-size:13px; }
+  .flow code { background:#232833; border-radius:4px; padding:1px 6px; font-family:"SF Mono", Menlo, monospace; }
+  .flow .step { margin:6px 0; color:#c9d1dc; }
+  .flow .arrow { color:#5a6472; margin-right:8px; }
+  footer { margin-top:36px; color:#5a6472; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>herdr-wecom-bot-bridge</h1>
+  <div class="sub">企业微信 ↔ Herdr Bridge — CLI 使用说明 · v0.1.0</div>
+
+  <div class="section"><h2>Usage</h2><pre>herdr-wecom-bot-bridge — 企业微信 ↔ Herdr Bridge：持有唯一企微 WebSocket，每条 Thread 配独立 Agent
+
+Usage:
+  herdr-wecom-bot-bridge &lt;command&gt; [options]
+  herdr-wecom-bot-bridge &lt;command&gt; --help    查看子命令帮助
+
+Commands:
+  init            初始化配置和文件系统
+  serve           启动常驻 Bridge daemon（持有唯一企微 WebSocket）
+  status          查看 Bridge / Herdr / Thread 状态
+  reconcile       修复已消失的 Herdr runtime 绑定
+  sweep           休眠超时且无任务的 Thread
+  herdr install   链接并启用随包发布的 Herdr plugin
+
+Options:
+  --home &lt;dir&gt;    状态目录（默认: ~/.herdr-wecom-bot-bridge）
+  --verbose       输出调试日志
+  --help, -h      显示本帮助
+
+Config: ~/.herdr-wecom-bot-bridge/config.toml
+凭据:   WECOM_BOT_ID / WECOM_BOT_SECRET（环境变量或 ~/.env）</pre></div>
+
+  <div class="section"><h2>首次使用流程</h2>
+    <div class="flow">
+      <div class="step"><span class="arrow">1.</span> 安装: <code>python3 -m pip install herdr-wecom-bot-bridge</code></div>
+      <div class="step"><span class="arrow">2.</span> 初始化: <code>herdr-wecom-bot-bridge init</code></div>
+      <div class="step"><span class="arrow">3.</span> 凭据: 写 <code>WECOM_BOT_ID</code> / <code>WECOM_BOT_SECRET</code> 到环境变量或 <code>~/.env</code></div>
+      <div class="step"><span class="arrow">4.</span> 装 plugin: <code>herdr-wecom-bot-bridge herdr install</code></div>
+      <div class="step"><span class="arrow">5.</span> 启动: <code>herdr-wecom-bot-bridge serve</code></div>
+      <div class="step"><span class="arrow">6.</span> 运维: <code>status</code> / <code>reconcile</code> / <code>sweep</code></div>
+    </div>
+  </div>
+
+  <div class="section"><h2>企微侧命令</h2>
+    <div class="flow">
+      <div class="step"><code>/new &lt;主题&gt;</code> — 新建 Thread（每成员独立游标）</div>
+      <div class="step"><code>/threads</code> — 列出 Thread（&gt; 标记当前）</div>
+      <div class="step"><code>/use &lt;ID&gt;</code> — 切换 Thread</div>
+      <div class="step"><code>/close [ID]</code> — 归档 Thread</div>
+      <div class="step"><code>/status</code> — 当前状态</div>
+    </div>
+  </div>
+
+  <footer>架构: 企微单 WebSocket → Bridge daemon → Herdr Workspace/Tab → 每 Thread 独立 Agent（Pi RPC）· 30 分钟空闲休眠自动恢复</footer>
+</div>
+</body>
+</html>

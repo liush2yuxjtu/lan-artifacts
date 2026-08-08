@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👋 Hello World</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --fg: #e2e8f0;
+    --accent: #38bdf8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    text-align: center;
+    padding: 2rem;
+  }
+  h1 {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  p.sub { color: #94a3b8; font-size: 1.1rem; }
+  .btn {
+    margin-top: .5rem;
+    padding: .7rem 1.6rem;
+    border: 1px solid #334155;
+    border-radius: 999px;
+    background: #1e293b;
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all .2s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+  footer {
+    position: fixed;
+    bottom: 1rem;
+    left: 0; right: 0;
+    font-size: .75rem;
+    color: #475569;
+    padding: 0 1rem;
+  }
+</style>
+</head>
+<body>
+  <h1>Hello, World! 👋</h1>
+  <p class="sub">来自 Pi 的首个 LAN artifact</p>
+  <button class="btn" onclick="count++ ; this.textContent = '点击了 ' + count + ' 次'">点击我</button>
+  <script>var count = 0;</script>
+  <footer>
+    来源项目：/Users/liushiyuwin（本机工作目录）&nbsp;·&nbsp;
+    Pi session：019fda6c-d561-74cd-99bb-7eab5cb8ac8c
+  </footer>
+</body>
+</html>

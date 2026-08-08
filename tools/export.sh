@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SRC="${LAN_ARTIFACT_DIR:-$HOME/.claude-artifacts}"
-SITE="site"
+SITE="docs"
 
 rm -rf "$SITE"
 mkdir -p "$SITE/v" "$SITE/a"

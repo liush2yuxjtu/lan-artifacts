@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinBrain 网站健康检查 · 3 步进度跟踪</title>
+<style>
+  :root { --ok:#16a34a; --warn:#d97706; --fail:#dc2626; --pending:#64748b; --ink:#0f172a; --mut:#64748b; --bg:#f8fafc; --card:#fff; --line:#e2e8f0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); padding:32px 16px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  h1 { font-size:22px; }
+  .ts { color:var(--mut); font-size:13px; font-variant-numeric:tabular-nums; }
+  .meta { color:var(--mut); font-size:12px; line-height:1.7; margin-bottom:20px; }
+  .meta code { background:#f1f5f9; padding:1px 6px; border-radius:4px; font-size:11px; }
+  .steps { display:flex; flex-direction:column; gap:14px; }
+  .step { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  .step-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .badge { flex:0 0 auto; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; }
+  .ok-bg { background:var(--ok); } .warn-bg { background:var(--warn); } .fail-bg { background:var(--fail); } .pending-bg { background:var(--pending); }
+  .step-title { font-size:16px; font-weight:600; }
+  .step-sub { font-size:12px; color:var(--mut); width:100%; margin-left:46px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:3px 14px; margin-top:10px; font-size:13px; margin-left:46px; }
+  .kv dt { color:var(--mut); }
+  .kv dd { font-variant-numeric:tabular-nums; word-break:break-all; }
+  .kv dd code { background:#f1f5f9; padding:0 5px; border-radius:4px; font-size:12px; }
+  .status-line { display:inline-block; font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px; margin-left:46px; margin-top:10px; }
+  .ok-chip { background:#dcfce7; color:var(--ok); }
+  .warn-chip { background:#fef3c7; color:var(--warn); }
+  .fail-chip { background:#fee2e2; color:var(--fail); }
+  .pending-chip { background:#e2e8f0; color:var(--pending); }
+  .alert { background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; padding:14px 18px; margin-top:16px; font-size:13px; line-height:1.8; }
+  .alert b { color:var(--warn); }
+  .alert code { background:#fef9c3; padding:1px 5px; border-radius:4px; font-size:12px; }
+  .progress { margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px; }
+  .progress h2 { font-size:14px; margin-bottom:10px; }
+  .bar { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--ok); border-radius:999px; }
+  .pl { display:flex; justify-content:space-between; font-size:12px; color:var(--mut); margin-top:6px; flex-wrap:wrap; gap:4px; }
+  footer { margin-top:20px; font-size:11px; color:var(--mut); text-align:center; line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🩺 WinBrain 网站健康检查 · 3 步进度</h1>
+    <span class="ts">检查时间：2026-08-07 12:47:07 (+08:00)</span>
+  </header>
+  <div class="meta">
+    目标网站：<b>WINBRAIN Enterprise V4 · Scroll World · 三层智能组织平台</b><br>
+    前端 <code>http://localhost:4190/</code> ｜ 后端 API <code>http://127.0.0.1:7683</code> ｜ 数据库 <code>FMCG uat_dws (OceanBase)</code><br>
+    来源项目：<code>/Users/liushiyuwin/projects/winbrain_os-ink-agent-sdk-clean</code> ｜ Pi session：<code>019fd5b2</code>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-head">
+        <span class="badge ok-bg">1</span>
+        <span class="step-title">首页可达性</span>
+        <span class="status-line ok-chip">✓ 通过</span>
+      </div>
+      <div class="step-sub">GET http://localhost:4190/</div>
+      <dl class="kv"><dt>状态码</dt><dd><code>200</code></dd><dt>Content-Type</dt><dd><code>text/html; charset=utf-8</code></dd><dt>延迟</dt><dd>1.8 ms</dd><dt>页面标题</dt><dd>WINBRAIN Enterprise V4 · Scroll World · 三层智能组织平台</dd></dl>
+    </div>
+    <div class="step">
+      <div class="step-head">
+        <span class="badge warn-bg">2</span>
+        <span class="step-title">API 响应</span>
+        <span class="status-line warn-chip">⚠ 部分通过</span>
+      </div>
+      <div class="step-sub">后端直连 GET /api/v1/capabilities → 200 ✓ ｜ 前端 /health 探测 → 503 ✗</div>
+      <dl class="kv"><dt>后端直连</dt><dd><code>200</code> · 4.1 ms · <code>workbench_capabilities</code> v1</dd><dt>前端 /health</dt><dd><code>503</code> · <code>backend_contract_mismatch</code></dd><dt>后端实际契约</dt><dd><code>publication.mode = single_current</code>，<code>expert_api.mode = stateless</code></dd><dt>前端期望契约</dt><dd><code>publication.mode = per_expert_opt_in</code>，<code>interactions.catalog = tui</code></dd></dl>
+    </div>
+    <div class="step">
+      <div class="step-head">
+        <span class="badge ok-bg">3</span>
+        <span class="step-title">数据库连接</span>
+        <span class="status-line ok-chip">✓ 通过</span>
+      </div>
+      <div class="step-sub">FMCG UAT DWS（OceanBase/MySQL 兼容）· SELECT 1</div>
+      <dl class="kv"><dt>数据库</dt><dd><code>uat_dws</code></dd><dt>主机</dt><dd><code>t5kuo85yequjk-mi.cn-zhangjiakou.oceanbase.aliyuncs.com:3306</code></dd><dt>验证</dt><dd><code>SELECT 1 → 1</code> · 120 ms</dd><dt>版本</dt><dd><code>5.7.25-OceanBase-v4.3.1.0</code></dd></dl>
+    </div>
+  </div>
+
+  <div class="alert"><b>⚠ 复现上次发现的问题：前后端契约漂移（contract drift）</b><br>后端 API 存活且响应 200，但 <code>frontend/server.mjs</code> 第 86-87 行的就绪检查要求 <code>publication.mode === "per_expert_opt_in"</code> 且 <code>interactions.catalog === "tui"</code>；实际后端 <code>expert-api-server.ts</code> 返回 <code>publication.mode === "single_current"</code> 且无 <code>interactions</code> 字段。因此 <code>/health</code> 持续 503，任何依赖该端点的监控/探活会误报故障。<br><b>建议</b>：对齐两端契约（更新 <code>server.mjs</code> 期望值，或后端补齐 <code>interactions</code> 字段），再复跑检查确认 <code>/health → 200</code>。</div>
+  <div class="progress">
+    <h2>进度跟踪</h2>
+    <div class="bar"><i style="width:100%"></i></div>
+    <div class="pl"><span>1 首页可达性 ✓</span> <span>2 API 响应 ⚠</span> <span>3 数据库连接 ✓</span></div>
+  </div>
+
+  <footer>
+    3 步检查完成：2/3 通过 · 1 项告警（契约漂移）<br>
+    来源项目 <code>/Users/liushiyuwin/projects/winbrain_os-ink-agent-sdk-clean</code> · Pi session <code>019fd5b2</code> · 生成于 2026-08-07
+  </footer>
+</div>
+</body>
+</html>

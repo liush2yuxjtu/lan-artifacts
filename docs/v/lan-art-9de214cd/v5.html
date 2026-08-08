@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ontology Factory → MCP Schema 生成器 · Hexagonal ASCII 设计</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:25px; }
+  .sub { color:var(--muted); margin:6px 0 22px; font-size:14px; }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .ascii { background:#0b0f14; border:1px solid var(--line); border-radius:10px; padding:18px; overflow-x:auto; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.5; color:var(--ink); white-space:pre; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .card h3 { font-size:15px; color:var(--brand); margin-bottom:6px; }
+  .card ul { padding-left:18px; font-size:13.5px; }
+  .card li { margin-bottom:4px; }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .tag.amber { background:#2e2612; color:#e5b568; border:1px solid #5a4a1f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ontology Factory → MCP Schema 生成器</h1>
+  <div class="sub">用 winbrain-data-ontology MCP 为所有未来 MCP 产出契约 schema · Claude Agent SDK 应用 · Hexagonal 架构 · 2026-08-07</div>
+
+  <h2>〇、核心概念</h2>
+  <div class="card">
+    <ul>
+      <li><b>winbrain-data-ontology 是 ontology factory 的输出</b>（已发布语义目录：4 只读工具 + release 固定 + 脱敏）</li>
+      <li>用它作为 <b>schema 源</b>：<code>describe_contract</code> / <code>get_app_context</code> 提取业务语义 → 生成未来 MCP 的契约 schema（工具/资源/输入输出 zod 规则）</li>
+      <li>产出 <code>schema.json</code> + 脚手架 → 新 MCP 项目模板（new-sdk-app 风格）</li>
+    </ul>
+  </div>
+
+  <h2>① Hexagonal 架构（ASCII）</h2>
+  <div class="ascii">                ┌──────────────────────────────────────────────┐
+                │              INBOUND ADAPTERS                 │
+                │   Claude Agent SDK query · CLI · TUI 复用      │
+                └──────────────────┬───────────────────────────┘
+                                   │  生成/校验/脚手架命令
+                ┌──────────────────▼───────────────────────────┐
+                │           APPLICATION · USE CASES             │
+                │   generateMcpSchema(ontologyRelease, spec)    │
+                │   validateMcpSchema(schema)                   │
+                │   scaffoldMcpProject(schema)                  │
+                └───────┬─────────────────────────────┬─────────┘
+                        │                             │
+         ┌──────────────▼──────────┐   ┌──────────────▼──────────────┐
+         │   INBOUND PORT          │   │   OUTBOUND PORT             │
+         │   McpSchemaGeneratorPort│   │   OntologyCatalogPort       │
+         └──────────────┬──────────┘   └──────────────┬──────────────┘
+                        │                             │
+         ┌──────────────▼──────────┐   ┌──────────────▼──────────────┐
+         │       DOMAIN            │   │        ADAPTER              │
+         │   McpSchema 纯规则      │   │  winbrain-data-ontology     │
+         │   zod schema 生成规则   │   │  MCP client（HTTP 8319）     │
+         │   release 固定 · 脱敏   │   │  Bearer 鉴权 · 审计          │
+         └─────────────────────────┘   └─────────────────────────────┘
+
+   依赖方向：adapters → application → domain（只进不出）</div>
+
+  <h2>② 数据流</h2>
+  <div class="ascii">ontology factory ──发布──▶ winbrain-data-ontology MCP（4 工具只读 · release 固定）
+                                     │
+              describe_contract · get_app_context（按对话目标）
+                                     ▼
+                  MCP Schema 生成器（Claude Agent SDK 应用）
+                                     │
+                                     ▼
+                  schema.json（工具 / 资源 / 输入输出 zod 规则）
+                                     │
+                                     ▼
+                  scaffoldMcpProject ──▶ 未来 MCP 脚手架（new-sdk-app 风格）</div>
+
+  <h2>③ Schema 生成规则（domain 纯函数）</h2>
+  <div class="card">
+    <ul>
+      <li><b>工具</b>：从已发布 business/assets/mappings 派生 — 每资产生成 read 工具（如 <code>get_ticket</code>），只读注解 + release 参数</li>
+      <li><b>资源</b>：<code>ontology://release/{releaseId}/items/{id}</code> 模式的引用 URI 模板</li>
+      <li><b>输入输出</b>：字段 → zod schema（dataType 映射：varchar→string、int→number、boolean→boolean）</li>
+      <li><b>契约元数据</b>：contractVersion、promptMode=conversation、writePolicy=read_only（对齐现有 4 工具契约）</li>
+      <li><b>边界</b>：release 固定（混版本拒绝）、输出脱敏（sk-*/apiKey/token）、引用原文不伪造</li>
+    </ul>
+  </div>
+
+  <h2>④ Claude Agent SDK 应用结构（拟）</h2>
+  <div class="card">
+    <h3>目录 · apps/mcp-schema-generator（新 SDK 应用）</h3>
+    <ul>
+      <li><code>src/index.ts</code> — SDK 入口（query + 工具：describe / generate / validate / scaffold）</li>
+      <li><code>src/domain/mcp-schema.ts</code> — zod 生成纯规则</li>
+      <li><code>src/application/use-cases.ts</code> — generateMcpSchema / validateMcpSchema / scaffoldMcpProject</li>
+      <li><code>src/adapters/outbound/ontology-mcp-client.ts</code> — 连 winbrain-data-ontology（HTTP 8319 · Bearer）</li>
+      <li><code>src/composition/create-runtime.ts</code> — 装配（hexagonal 单一装配点）</li>
+    </ul>
+    <h3 style="margin-top:10px">复用</h3>
+    <ul>
+      <li>仓库既有 <code>DataOntologyCatalogPort</code> 契约语义（4 工具不变）</li>
+      <li>SDK 应用自身只读、无宿主环境继承、fail closed（对齐 AGENTS.md 安全基线）</li>
+    </ul>
+  </div>
+
+  <h2>⑤ 边界与后续</h2>
+  <div class="card">
+    <ul>
+      <li class="tag green">v1</li> schema 生成 + 校验 + 脚手架（headless 测试）
+      <li class="tag amber">v2</li> 从对话目标自动挑选资产子集（相关性检索替代固定截断）
+      <li class="tag blue">不变</li> winbrain-data-ontology 4 工具契约保持冻结
+    </ul>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>plugin-dev 安装 + winbrain_os MCP 测试探索报告 — LAN Artifacts</title>
+<style>
+ body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#101318;color:#e8eaed;height:100vh;display:flex;flex-direction:column}
+ header{padding:8px 16px;background:#171a21;border-bottom:1px solid #262b36;display:flex;gap:12px;align-items:center;font-size:13px}
+ a{color:#8ab4f8;text-decoration:none} select{background:#0f1115;color:#e8eaed;border:1px solid #2c3340;border-radius:6px;padding:4px 8px}
+ iframe{flex:1;border:0;width:100%}
+</style></head><body>
+<header><a href="../">←</a><b>plugin-dev 安装 + winbrain_os MCP 测试探索报告</b>
+<select id="ver"><option value="3">v3</option>
+<option value="2">v2</option>
+<option value="1">v1</option></select>
+<a id="raw" target="_blank" href="../v/lan-art-6bf6c1a7/v3.html">原始</a></header>
+<iframe id="frame" src="../v/lan-art-6bf6c1a7/v3.html"></iframe>
+<script>
+ const sel=document.getElementById('ver'),f=document.getElementById('frame'),raw=document.getElementById('raw');
+ sel.onchange=()=>{const v=sel.value;f.src=`../v/lan-art-6bf6c1a7/v${v}.html`;raw.href=`../v/lan-art-6bf6c1a7/v${v}.html`};
+</script>
+</body></html>
