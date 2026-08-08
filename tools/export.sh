@@ -8,10 +8,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SRC="${LAN_ARTIFACT_DIR:-$HOME/.claude-artifacts}"
-SITE="docs"
+SITE="."
 
-rm -rf "$SITE"
-mkdir -p "$SITE/v" "$SITE/a"
+# 站点文件直接放 repo 根(GitHub Pages legacy 只可靠服务 /); 保留 .git/tools
+rm -rf v a
+mkdir -p v a
 
 # 1. 版本 html 原样复制
 cp -R "$SRC/html/." "$SITE/v/"
