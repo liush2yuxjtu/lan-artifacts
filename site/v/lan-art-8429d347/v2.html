@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>herdr-wecom-bot-bridge — 四能力验证计划</title>
+<style>
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0f1115;color:#e6e8eb;margin:0;padding:32px 16px;line-height:1.65}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#8b93a1;font-size:13px;margin-bottom:24px}
+  .card{background:#171a21;border:1px solid #2a2f3a;border-radius:10px;padding:16px 20px;margin-bottom:16px}
+  .card h2{font-size:15px;color:#8ab4f8;margin:0 0 8px}
+  .step{display:flex;gap:10px;margin:6px 0;font-size:13.5px;color:#c9d1dc}
+  .step .box{flex:none;width:14px;height:14px;border:1.5px solid #5a6472;border-radius:3px;margin-top:2px}
+  .step.done .box{background:#2e7d32;border-color:#2e7d32}
+  .step.done{color:#8b93a1;text-decoration:line-through}
+  code{background:#232833;border-radius:4px;padding:1px 6px;font-size:12.5px;font-family:"SF Mono",Menlo,monospace}
+  .tag{display:inline-block;font-size:11px;border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+  .t-progress{background:#5b3a1e;color:#ffb86c}
+  .t-done{background:#1e3a24;color:#6fd17f}
+  footer{margin-top:28px;color:#5a6472;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>herdr-wecom-bot-bridge · 四能力验证计划</h1>
+  <div class="sub">2026-08-07 · 会话 recap + 主动介入(3) / 授权工作流(4) 验证方案</div>
+
+  <div class="card"><h2>📋 本任务执行清单</h2>
+    <div class="step" id="s1"><span class="box"></span><span><b>守护化</b>: launchd plist + 凭据包装脚本(0600), 桥不再依赖 pane</span></div>
+    <div class="step" id="s2"><span class="box"></span><span><b>/push 端点</b>: web 加 POST /push, 运维/测试用主动推送通道</span></div>
+    <div class="step" id="s3"><span class="box"></span><span><b>主动群发</b>: 经 /push 向群里发 hi + 感谢韩啸测试主动聊天</span></div>
+    <div class="step" id="s4"><span class="box"></span><span><b>全量 recap</b>: 会话完整回顾 (本 artifact + 终稿)</span></div>
+  </div>
+
+  <div class="card"><h2>🔭 能力3 验证: 主动介入 <span class="tag t-progress">待验</span></h2>
+    <div class="step"><span class="box"></span><span>计划A (真群): 群里两人讨论"A方案 vs B方案" → 10分钟内 Spark judge 触发 → bot 主动插话请求授权 (无需 @)</span></div>
+    <div class="step"><span class="box"></span><span>计划B (mock): tools/mock_wecom_server.py 注入两人争论帧 → 断言 mock 捕获 aibot_send_msg 主动推送</span></div>
+    <div class="step"><span class="box"></span><span>计划C (直测): codex exec -m gpt-5.3-codex-spark 冒烟 — 已通过 ✅ (A/B 争论 → intervene:true)</span></div>
+    <div class="step"><span class="box"></span><span>判定: 群里出现无 @ 的 bot 消息 = 通过</span></div>
+  </div>
+
+  <div class="card"><h2>🔑 能力4 验证: 授权工作流 <span class="tag t-progress">待验</span></h2>
+    <div class="step"><span class="box"></span><span>触发: 能力3 介入发出 → bot 消息带"回复'同意'授权"</span></div>
+    <div class="step"><span class="box"></span><span>授权: 群成员回"同意" → overseer 匹配 → 任务 post 进介入线程 → worker 开工</span></div>
+    <div class="step"><span class="box"></span><span>断言: transcript 出现 user_message = 授权话术 + assistant_message = 执行结果 (单测已覆盖, 31 绿)</span></div>
+    <div class="step"><span class="box"></span><span>判定: 群里 bot 说"开始执行" + 产出 = 通过</span></div>
+  </div>
+
+  <div class="card"><h2>🧠 会话 recap (摘要)</h2>
+    <div class="step done"><span class="box"></span><span>复盘 pi session 019fd5f4 → herdr-wecom-bot-bridge 0.1.0 已存在, 列出缺口</span></div>
+    <div class="step done"><span class="box"></span><span>ultracode workflow: 群成员独立游标实现 + 9 测试绿</span></div>
+    <div class="step done"><span class="box"></span><span>CLI -h 重设计 (herdr/pi/claude 风格)</span></div>
+    <div class="step done"><span class="box"></span><span>LAN Web UI: /t/&lt;id&gt; 聊天气泡页 + 轮询 + 附件上传 + agent 图捕获渲染</span></div>
+    <div class="step done"><span class="box"></span><span>WeCom 出站图片推送: upload 三阶段 + media_id</span></div>
+    <div class="step done"><span class="box"></span><span>入站图片: mixed.msg_item 解析 + 下载 + AES 解密 (aeskey padding 修复) — 真群验证通过</span></div>
+    <div class="step done"><span class="box"></span><span>20 案例研究: 新会话自发成功率 12/14, 相对路径已修</span></div>
+    <div class="step done"><span class="box"></span><span>Mock WeCom 服务器 (WS+HTTP, 真加密媒体) — 29 测试</span></div>
+    <div class="step done"><span class="box"></span><span>Overseer: Spark judge + 授权协议 — 31 测试绿, 生产启用</span></div>
+  </div>
+
+  <footer>本 artifact 随执行进度自动更新</footer>
+</div>
+</body>
+</html>

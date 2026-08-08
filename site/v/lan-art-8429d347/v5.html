@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>herdr-wecom-bot-bridge Eval 数据集</title>
+<style>
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#0f1115;color:#e6e8eb;margin:0;padding:32px 16px;line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#8b93a1;font-size:13px;margin-bottom:24px}
+  .stats{display:flex;gap:12px;margin-bottom:20px}
+  .stat{background:#171a21;border:1px solid #2a2f3a;border-radius:10px;padding:12px 18px;flex:1;text-align:center}
+  .stat b{display:block;font-size:26px}
+  .stat span{font-size:12px;color:#8b93a1}
+  .ok b{color:#6fd17f}.bad b{color:#ff6b6b}.fix b{color:#ffb86c}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;background:#171a21;border-radius:10px;overflow:hidden}
+  th{background:#232833;color:#8ab4f8;padding:8px 10px;text-align:left;font-weight:600}
+  td{padding:7px 10px;border-top:1px solid #262b36;vertical-align:top}
+  tr:hover td{background:#1c212b}
+  .PASS{color:#6fd17f;font-weight:700}.FAIL{color:#ff6b6b;font-weight:700}
+  code{background:#232833;border-radius:4px;padding:1px 5px;font-size:11.5px}
+  footer{margin-top:24px;color:#5a6472;font-size:12px}
+  .cap{display:inline-block;background:#1e3a5a;color:#8ab4f8;border-radius:8px;padding:1px 7px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>herdr-wecom-bot-bridge · Eval 数据集</h1>
+  <div class="sub">2026-08-07 全会话测试复盘 · 17 cases · 来源: 真实企微群测 + 20案例研究 + mock 对抗回放 + 单测</div>
+
+  <div class="stats">
+    <div class="stat ok"><b>10</b><span>PASS</span></div>
+    <div class="stat bad"><b>7</b><span>FAIL (已全部修复)</span></div>
+    <div class="stat fix"><b>7/7</b><span>修复率</span></div>
+    <div class="stat"><b>86%</b><span>20案例自发成功率</span></div>
+  </div>
+
+  <table>
+    <tr><th>ID</th><th>能力域</th><th>场景</th><th>期望</th><th>实际</th><th>状态</th><th>修复</th></tr>
+    <tr><td>E001</td><td><span class="cap">thread-cursor</span></td><td>群两人同时@ 各建线程</td><td>各自独立线程, 不互抢</td><td>member-cursors 文件, 每成员独立</td><td class="PASS">PASS</td><td>per-member cursor</td></tr>
+    <tr><td>E002</td><td><span class="cap">inbound-image</span></td><td>企微群发图片</td><td>image 帧进入链路</td><td>msgtype=image 被静默丢弃</td><td class="FAIL">FAIL</td><td>接住 image 帧</td></tr>
+    <tr><td>E003</td><td><span class="cap">inbound-image</span></td><td>图+文同发 (mixed)</td><td>mixed 拆出 text+image</td><td>items=0 空消息</td><td class="FAIL">FAIL</td><td>键名 msg_item</td></tr>
+    <tr><td>E004</td><td><span class="cap">inbound-image</span></td><td>企微图下载解密</td><td>aeskey 解出原图</td><td>Incorrect padding</td><td class="FAIL">FAIL</td><td>aeskey 补 = 填充</td></tr>
+    <tr><td>E005</td><td><span class="cap">agent-export</span></td><td>agent 回复含图片路径</td><td>附件自动捕获发送</td><td>相对路径漏捕获</td><td class="FAIL">FAIL</td><td>按 cwd 解析相对路径</td></tr>
+    <tr><td>E006</td><td><span class="cap">agent-export</span></td><td>20 案例: 新会话自发发图</td><td>无提示自发写绝对路径</td><td>12/14 成功</td><td class="PASS">PASS</td><td>case 3,6 相对路径(已修)</td></tr>
+    <tr><td>E007</td><td><span class="cap">worker</span></td><td>16:40 三连@ 处理</td><td>worker 就绪并回复</td><td>socket not ready 超时</td><td class="FAIL">FAIL</td><td>PYTHONPATH 绝对路径指向 src</td></tr>
+    <tr><td>E008</td><td><span class="cap">daemon</span></td><td>launchd 守护启动</td><td>桥+worker 全链路</td><td>worker 找不到 pi</td><td class="FAIL">FAIL</td><td>daemon PATH 补用户目录</td></tr>
+    <tr><td>E009</td><td><span class="cap">web</span></td><td>Web 启动 (无网络)</td><td>正常绑定端口</td><td>mDNS 反向解析挂死</td><td class="FAIL">FAIL</td><td>跳过 getfqdn</td></tr>
+    <tr><td>E010</td><td><span class="cap">memory</span></td><td>线程跨消息记忆</td><td>恢复历史上下文</td><td>背出 3 张自画像细节</td><td class="PASS">PASS</td><td>pi session 恢复</td></tr>
+    <tr><td>E011</td><td><span class="cap">outbound-image</span></td><td>agent 画图发企微</td><td>upload 三阶段+send</td><td>日落城市图到达会话</td><td class="PASS">PASS</td><td>真实企微推送</td></tr>
+    <tr><td>E012</td><td><span class="cap">inbound-image</span></td><td>真群图片分析</td><td>分析的是新图</td><td>识别出 AI 概念抽取界面</td><td class="PASS">PASS</td><td>真实 mixed 帧端到端</td></tr>
+    <tr><td>E013</td><td><span class="cap">proactive</span></td><td>Spark judge A/B 争论</td><td>判 intervene 给话术</td><td>intervene:true 含授权引导</td><td class="PASS">PASS</td><td>gpt-5.3-codex-spark</td></tr>
+    <tr><td>E014</td><td><span class="cap">proactive</span></td><td>授权工作流</td><td>回同意后开工</td><td>介入→请求→授权→执行</td><td class="PASS">PASS</td><td>单测覆盖, 真群待验</td></tr>
+    <tr><td>E015</td><td><span class="cap">mock</span></td><td>生产帧对抗回放</td><td>真实帧原样处理</td><td>非空含 [图片已保存]</td><td class="PASS">PASS</td><td>mock_wecom_server</td></tr>
+    <tr><td>E016</td><td><span class="cap">thread-rule</span></td><td>每次@ 新线程</td><td>群内每@ = 独立 thread</td><td>16:40 三连@ 三个新线程</td><td class="PASS">PASS</td><td>规则变更</td></tr>
+    <tr><td>E017</td><td><span class="cap">wild-test</span></td><td>16:50 @bot recap 全部对话</td><td>跨线程检索+产出</td><td>HTML 含 6 线程+5 图</td><td class="PASS">PASS</td><td>新 worker 全能力</td></tr>
+  </table>
+
+  <footer>数据源: evals/eval.csv · 会话全历史复盘 · 坏案例 = 本会话真实遇到并修复的 bug</footer>
+</div>
+</body>
+</html>

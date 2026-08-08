@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plugin-dev 安装 + winbrain_os MCP 真实测试报告（完成）</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:25px; }
+  .sub { color:var(--muted); margin:6px 0 22px; font-size:14px; }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .card h3 { font-size:15px; color:var(--brand); margin-bottom:6px; }
+  .card ul { padding-left:18px; font-size:13.5px; }
+  .card li { margin-bottom:4px; }
+  .ascii { background:#0b0f14; border:1px solid var(--line); border-radius:10px; padding:16px; overflow-x:auto; font-family:ui-monospace,Menlo,monospace; font-size:12px; white-space:pre; color:var(--ink); }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .ok { color:var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>plugin-dev 安装 + winbrain_os MCP 真实测试报告（完成）</h1>
+  <div class="sub">2026-08-07 · 按 plugin-dev/skills/mcp-integration 流程跑通真实 DB cases</div>
+
+  <h2>① plugin-dev 安装 ✅</h2>
+  <div class="card">
+    <ul>
+      <li class="tag green">✅</li> 官方 marketplace 插件 → <code>~/.claude/plugins/cache/claude-plugins-official/plugin-dev/119f4ebf21f6/</code>
+      <li class="tag green">✅</li> <code>installed_plugins.json</code> 注册 user + project 双 scope
+      <li class="tag green">✅</li> 内含 <code>skills/mcp-integration</code>（HTTP 型 + Token headers 配置法）
+    </ul>
+  </div>
+
+  <h2>② 按 skill 流程的 MCP 配置（HTTP + Token）</h2>
+  <div class="ascii">mcpServers:
+  winbrain-data-ontology:  type=http  url=http://127.0.0.1:8319   headers Bearer（本地）
+  winbrain-yuntu:          type=http  url=http://192.168.26.166:3010/mcp/projects/yuntu-competitor-analysis
+                           headers Bearer wbmcp_*（远程 gateway · 经 7897 代理）</div>
+
+  <h2>③ 真实 DB cases 结果 ✅</h2>
+  <div class="card">
+    <h3>DeepSeek pane（claude --bare --strict-mcp-config）双 MCP 加载</h3>
+    <div class="ascii">winbrain-data-ontology:  describe_contract · get_app_context · get_ontology_item · search_ontology
+winbrain-yuntu:          get_context_pack · lint_wiki · read_page · wiki_status</div>
+    <h3 style="margin-top:10px">实测问答（DeepSeek 调用 get_context_pack 后中文回答）</h3>
+    <ul>
+      <li class="tag green">✅</li> <b>身份锚点</b>：云图子账号（品牌账户）与系统品牌 <b>1:1</b> 对应；Join Key <code>QC_MONTAGE_BRAND.BRAND_ACCOUNT_ID = SUB_ACCOUNT_ID</code>
+      <li class="tag green">✅</li> 子账号 → 云图类目树 1:N；子账号 → 竞品品牌列表 1:N
+      <li class="tag green">✅</li> 竞品素材（<code>QC_MONTAGE_YUNTU_VIDEO_DATA</code>）+ 视频品牌标签（<code>QC_MONTAGE_YUNTU_VIDEO_BRAND_TAG</code> → <code>QC_MONTAGE_BRAND_MATERIAL_TAG</code> 多对一）
+      <li class="tag green">✅</li> 业务闭环：竞品洞察 → AI 创意 → 自动化混剪推荐
+      <li class="tag green">✅</li> <b>真实性细节</b>：指出 33 项作废字段（MODULE/GMV/ROI/PLAY_3S_RATE 等）+ 引用格式异常 — 非编造，来自真实知识库
+    </ul>
+  </div>
+
+  <h2>④ 怎么测这个 MCP（中文 · 完整答案）</h2>
+  <div class="card">
+    <ol style="padding-left:18px;font-size:13.5px">
+      <li><b>连通</b>：<code>curl http://192.168.26.166:3010/health</code> → ok（直连不通时经 7897 代理；node fetch 需 <code>--use-env-proxy</code> 且清空 NO_PROXY）</li>
+      <li><b>鉴权</b>：无 token → 401；伪 <code>wbmcp_</code> → 403（DB <code>resolve_ontology_mcp_project</code>）；真 token → 200</li>
+      <li><b>工具发现</b>：MCP Client initialize + listTools → 4 工具（get_context_pack 参数名是 <code>prompt</code>）</li>
+      <li><b>数据问答</b>：<code>get_context_pack(prompt)</code> → 知识包（项目 + 版本 + 220 页命中概念 + 血缘引用）；<code>read_page</code> 单页全文；<code>wiki_status</code> 编译状态；<code>lint_wiki</code> 链接校验</li>
+      <li><b>专家场景</b>：DeepSeek pane（strict-mcp-config + 双 MCP）直接问业务问题 → 自动调用并中文总结（本次已演示）</li>
+      <li><b>本仓库链路</b>：<code>config/mcp-servers.local.json</code>（winbrain-yuntu alwaysLoad）→ <code>npm run smoke:mcp</code></li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

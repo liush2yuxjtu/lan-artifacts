@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WinBrain 手写外部 MCP 配置加载 · 实测与部署缺口</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; max-width: 860px; margin: 0 auto; padding: 24px 20px 64px; line-height: 1.65; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2 { font-size: 17px; margin-top: 32px; border-bottom: 1px solid #8884; padding-bottom: 6px; }
+  h3 { font-size: 14px; margin: 18px 0 6px; }
+  .sub { color: #888; font-size: 13px; margin-top: 0; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  pre { background: #00000014; border: 1px solid #8884; border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+  .ok { color: #1a7f37; font-weight: 600; }
+  .warn { color: #b35900; font-weight: 600; }
+  .bad { color: #cf222e; font-weight: 600; }
+  .card { border: 1px solid #8884; border-radius: 10px; padding: 12px 16px; margin: 10px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid #8884; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #00000012; }
+  @media (prefers-color-scheme: dark) { pre { background: #ffffff12; } th { background: #ffffff12; } }
+</style>
+</head>
+<body>
+<h1>🔌 WinBrain 手写外部 MCP 配置加载</h1>
+<p class="sub">2026-08-07 · winbrain_os-ink-agent-sdk-clean · feature/ink-agent-sdk-creator-os · Claude Code 会话</p>
+
+<h2>1. 交付的功能</h2>
+<div class="card">
+TUI 普通聊天 / 专家 / 员工会话支持从 <b>手写配置文件</b> 加载外部 HTTP MCP（无需改代码、无需点击选择）。
+专家同时保留原有「从 Data Ontology 点击选择」的加载方式。
+</div>
+
+<h3>配置文件</h3>
+<pre>config/mcp-servers.json              ← 提交的模板（占位 token）
+config/mcp-servers.local.json        ← 本地覆盖（.gitignore，真实 token 放这里，同名键优先）</pre>
+<pre>{
+  "mcpServers": {
+    "winbrain-yuntu": {
+      "type": "http",
+      "url": "http://192.168.26.166:3010/mcp/projects/yuntu-competitor-analysis",
+      "headers": { "Authorization": "Bearer wbmcp_替换为同事自己的Token" },
+      "alwaysLoad": true
+    }
+  }
+}</pre>
+<ul>
+  <li>当前仅支持 <code>type: "http"</code>（stdio 子进程会继承宿主环境，违反 Sandbox B 基线，暂不开放）</li>
+  <li>配置经 composition 校验注入，聊天会话 <code>mcpServers</code> 自动合并，工具名为 <code>mcp__&lt;配置键&gt;__&lt;工具&gt;</code></li>
+  <li>新增验证入口：<code>npm run smoke:mcp</code>（真实模型调用）与 <code>node --import tsx scripts/mcp-tool-count.ts</code>（免模型装配探针）</li>
+</ul>
+
+<h2>2. 实测结论</h2>
+<div class="grid">
+  <div class="card"><span class="ok">✅ 装配链路</span><br>config → loader → SDK → CLI → HTTP 连接 → 工具注册。本地会话式服务器实测工具 <code>mcp__local-ontology__get_ontology_item</code> 等 4 个全部加载（TOOLS 34→38）。</div>
+  <div class="card"><span class="ok">✅ yuntu 数据层</span><br><code>get_context_pack</code> 直接调用成功：220 页知识库，返回品牌/素材/视频/云图账号关系完整证据包。</div>
+  <div class="card"><span class="bad">⏳ yuntu 全链路</span><br>Claude Code 客户端初始化后 GET SSE 被网关 404，连接被丢弃（详见下节）。</div>
+  <div class="card"><span class="warn">⏳ 模型池 429</span><br>gpt-5.6-sol / luna OAuth 凭据全部冷却中，smoke:mcp 完整验收待模型池恢复。</div>
+</div>
+
+<h3>get_context_pack 返回的核心关系证据</h3>
+<table>
+  <tr><th>关系</th><th>证据（返回上下文包）</th></tr>
+  <tr><td>云图账号 ↔ 系统品牌</td><td><code>QC_MATERIAL_YUNTU_BRAND_ACCOUNT.SUB_ACCOUNT_ID = QC_MONTAGE_BRAND.BRAND_ACCOUNT_ID</code>（1:1），云图子账号与系统品牌一一对应，是竞品策略配置的身份上下文</td></tr>
+  <tr><td>云图账号 → 品类/品牌</td><td><code>QC_MATERIAL_YUNTU_CATEGORY</code>、<code>QC_MATERIAL_YUNTU_BRAND</code> 均按 <code>BRAND_ACCOUNT_ID = SUB_ACCOUNT_ID</code> 关联（1:N）</td></tr>
+  <tr><td>视频 ↔ 素材</td><td>竞品视频存于 <code>QC_MONTAGE_YUNTU_VIDEO_DATA</code>（VID 云图素材唯一标识 / VIDEO_ID / VIDEO_OSS_URL / SCRIPT_CONTENT 脚本文案）</td></tr>
+  <tr><td>素材 ↔ 品牌标签</td><td><code>QC_MONTAGE_YUNTU_VIDEO_BRAND_TAG.TAG_ID → QC_MONTAGE_BRAND_MATERIAL_TAG.ID</code>（N:1），同一标签体系复用本品与竞品两条业务线，支撑跨品牌可比性分析与智能混剪推荐</td></tr>
+</table>
+
+<h2>3. 部署侧缺口（需张晴确认）</h2>
+<div class="card">
+<b>参考网关 POST-only，缺 Streamable HTTP GET/SSE。</b><br>
+部署在 192.168.26.166:3010 的网关（winbrain_os-template <code>apps/ontology-mcp-gateway</code>）路由只接受 POST：
+<pre>if (request.method !== "POST" || !match?.[1]) {
+  sendProblem(response, 404, "ONTOLOGY_MCP_NOT_FOUND", ...);
+}</pre>
+Claude Code 客户端流程：POST initialize（成功）→ GET 开 SSE 流 → <b>404</b> → 连接被丢弃（CLI 日志 <code>Failed to open SSE stream: Not Found</code>）→ 工具不可用。
+</div>
+<h3>修复方向（已验证模式）</h3>
+<ol>
+  <li>按 <code>mcp-session-id</code> 维护 transport 会话（本仓库 <code>src/adapters/inbound/mcp/data-ontology-http.ts</code> 已是该模式，并用 CLI 实测：17ms 连接、无 SSE 错误、175s 干净关闭）</li>
+  <li>GET + 有效 session → 转发 <code>transport.handleRequest</code>（SSE 流）；DELETE → 关闭并清理</li>
+  <li>注意：audit 绑定 DB 事务（<code>withOntologyMcpProjectTransaction</code>），会话存活期内需保持事务或改用连接池写审计</li>
+</ol>
+<p>部署侧修复后运行 <code>npm run smoke:mcp</code> 即作为全链路验收。</p>
+
+<h2>4. 本机环境备注</h2>
+<div class="card">
+本笔记本 <b>node 进程无法直连 192.168.26.x</b>（EHOSTUNREACH；curl / python / nc / bun 均可），疑为企业网络策略；CLI 的 MCP HTTP 客户端运行在 node 上，且 Sandbox B 规则要求 SDK env 显式空对象、代理变量未透传。网关修复后若仍不加载，需二选一：网络策略放行 node 内网直连，或评审放宽 env 仅透传非敏感代理路由变量（涉及既有安全测试断言）。
+</div>
+
+<h2>5. 验证状态</h2>
+<ul>
+  <li><span class="ok">✅</span> <code>npm run typecheck</code> · <code>npm test</code> 194/194 · <code>npm run check:tui</code> · <code>npm run build</code></li>
+  <li><span class="ok">✅</span> JCM Artifact 已同步（快照 + Remaining Work 两条新待办）</li>
+  <li><span class="warn">⏳</span> <code>npm run smoke:mcp</code> 全链路待模型池恢复 + 网关 GET/SSE 修复</li>
+</ul>
+</body>
+</html>

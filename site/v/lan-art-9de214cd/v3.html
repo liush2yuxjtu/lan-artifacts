@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本会话工作总览 · WinBrain Creator OS</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:26px; }
+  .sub { color:var(--muted); margin:6px 0 24px; font-size:14px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:26px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .stat b { display:block; font-size:22px; color:var(--brand); }
+  .stat span { font-size:12px; color:var(--muted); }
+  .stat.green b { color:var(--ok); }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .item h3 { font-size:15px; color:var(--brand); margin-bottom:4px; }
+  .item .meta { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .item ul { padding-left:18px; font-size:13.5px; }
+  .item li { margin-bottom:3px; }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; vertical-align:middle; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .tag.amber { background:#2e2612; color:#e5b568; border:1px solid #5a4a1f; }
+  .next { background:#1a1712; border:1px solid var(--warn); border-radius:10px; padding:14px 18px; font-size:13.5px; }
+  .next b { color:var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>本会话工作总览 · WinBrain Creator OS</h1>
+  <div class="sub">2026-08-07 · 分支 feature/ink-agent-sdk-creator-os · 仓库 winbrain_os-ink-agent-sdk-clean</div>
+
+  <div class="stats">
+    <div class="stat green"><b>194/194</b><span>测试全绿（起点 166/189）</span></div>
+    <div class="stat"><b>14</b><span>提交（11 本会话 + 3 并行 agent merge）</span></div>
+    <div class="stat green"><b>ONTOLOGY_SMOKE_PASS</b><span>codex-spark 打通</span></div>
+    <div class="stat"><b>+535</b><span>业务工厂后端（16 文件）</span></div>
+  </div>
+
+  <h2>① 文档同步（提交 2bc0e00）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag blue">15-agent workflow</span>探索 → 更新 → 验证</div>
+    <ul>
+      <li>10 个 AGENTS.md 同步到最新代码（架构/沙盒安全/前端证据链）</li>
+      <li><code>CLAUDE.md → AGENTS.md</code> 符号链接（单一事实源）</li>
+      <li>验证揪出 3 处 stale 声明并修正（a11y 21/21、canonical ID 14、HTTP 哈希）</li>
+    </ul>
+  </div>
+
+  <h2>② winbrain_os 模板入库（提交 9621674 · Stage 1）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag blue">参考资产</span>585 文件 · 9.6MB · 只读</div>
+    <ul>
+      <li>完整 NestJS/Nx monorepo → <code>assets/reference/winbrain_os-template/</code></li>
+      <li>登记文档：模块清单、契约对比、lift/do-not-lift、RFC 9457 错误码映射</li>
+    </ul>
+  </div>
+
+  <h2>③ data-ontology MCP HTTP 模式（提交 d8d1bf3 + 47402d3 · Stage 2）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag green">hexagonal</span>契约不变 · 4 工具不变</div>
+    <ul>
+      <li><code>data-ontology-http.ts</code>：Streamable HTTP + Bearer token（sha256 timing-safe）+ 每工具 JSONL 审计</li>
+      <li>入口 <code>data-ontology-mcp-http.ts</code>（<code>ONTOLOGY_MCP_TOKEN</code> fail closed）</li>
+      <li>修真 bug：SDK 1.30 单 transport 限制 → 每 session 独立 server；unbound 方法丢 this</li>
+      <li>hexagonal 检查 → 入口绕过 composition root，已收敛（47402d3）</li>
+    </ul>
+  </div>
+
+  <h2>④ Stage 3：23 个测试失败 → 0（提交 a7e8b78）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag amber">正则漂移</span><span class="tag blue">真 bug</span></div>
+    <ul>
+      <li>interaction-contract：evidence 字符串过期、<code>prj-mcp-pick</code> 未登记</li>
+      <li>真 bug：<code>goto</code> ACT 键未加引号 → audit handler 发现正则匹配不到</li>
+      <li>creator-ui/frontend/web-project-create/demo：严格正则 vs 重构后代码（多行/尾逗号/双引号）</li>
+      <li>TUI check 断言过期（"New Agent SDK"→"创建项目"）</li>
+    </ul>
+  </div>
+
+  <h2>⑤ codex-spark 打通 smoke（提交 5d8c8e6 + bb70f50 + 2894557）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag green">ONTOLOGY_SMOKE_PASS</span>gpt-5.3-codex-spark</div>
+    <ul>
+      <li>发现上游 ID <code>gpt-5.3-codex-spark</code>（直连 Codex API 探测）；配置 <code>cli-proxy-api.yaml</code> 别名 + 放行 5.3 家族（已备份）</li>
+      <li>实测窗口 ~500KB → <code>ontologyContext</code> 截断前 25 资产（<code>ONTOLOGY_CONTEXT_ASSET_CAP</code>）</li>
+      <li><code>WINBRAIN_MODEL</code> env 覆盖；代理日志验证请求按目标模型发出</li>
+    </ul>
+  </div>
+
+  <h2>⑥ 业务工厂后端（提交 cbbd286 · 沙盒 A）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag green">194/194</span>不抄 UI · 不造假生成 · AgentBay 云端</div>
+    <ul>
+      <li>域：<code>BusinessApp</code> +status/files/messages；<code>domain/business-app.ts</code> 纯规则（1–30 文件、1MiB/4MiB 上限、禁 .env/.pem/.key）</li>
+      <li>用例：<code>updateAppWorkspace</code>（校验+消息+自动回 draft）、<code>publishApp</code>/<code>unpublishApp</code>（blocker）</li>
+      <li>HTTP：<code>POST /api/v1/apps/:id/workspace|publish|unpublish</code></li>
+      <li>TUI：App 目录显示 PUBLISHED/DRAFT · N FILES · 发布日期；<code>P</code>/<code>U</code> 键；Cloud Agent 屏 <code>/save</code> 从 AgentBay 沙盒拉产物存 App</li>
+      <li>选型依据：沙盒 A 内置预览/部署 + Web 业务工厂已走 A → 双端一致</li>
+    </ul>
+  </div>
+
+  <h2>待办</h2>
+  <div class="next">
+    <b>剩余：</b>① 业务工厂测试中心（TestCase 执行）与多目标部署（v2） ② <code>/save</code> 嵌套目录产物读取（当前根目录一层） ③ smoke 实时依赖模型冷却状态 ④ 版本快照多版本化（当前 status+publishedAt）
+  </div>
+</div>
+</body>
+</html>

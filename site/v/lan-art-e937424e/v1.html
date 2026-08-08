@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MetaSaaS 健康检查进度</title>
+    <style>
+      :root {
+        --canvas: #0e1319;
+        --surface: #161e28;
+        --surface2: #1c2633;
+        --line: #263241;
+        --text: #e6edf3;
+        --muted: #8b9bb0;
+        --accent: #2dd4bf;
+        --accent-dim: #155e55;
+        --warn: #fbbf24;
+        --warn-dim: #5c4a15;
+        --ok: #34d399;
+        --idle: #475569;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: radial-gradient(1200px 500px at 80% -10%, rgba(45, 212, 191, 0.07), transparent 60%), var(--canvas);
+        color: var(--text);
+        font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 48px 20px 32px;
+      }
+      .wrap { width: 100%; max-width: 720px; }
+      header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+      h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+      .stamp { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+      .gauge { display: flex; align-items: center; gap: 18px; margin-bottom: 36px; }
+      .pct { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; color: var(--accent); min-width: 110px; }
+      .pct small { font-size: 18px; color: var(--muted); font-weight: 600; }
+      .bar { flex: 1; height: 8px; border-radius: 99px; background: var(--surface2); overflow: hidden; }
+      .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+      .steps { display: flex; flex-direction: column; gap: 14px; }
+      .step { display: flex; gap: 16px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+      .step .no { flex: none; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; background: var(--surface2); color: var(--muted); }
+      .step.done .no { background: var(--accent-dim); color: #b8f5ec; }
+      .step h2 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+      .step p { color: var(--muted); font-size: 13.5px; line-height: 1.6; margin-top: 4px; }
+      .chip { margin-left: auto; flex: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); background: var(--surface2); }
+      .step.done .chip { background: var(--accent-dim); border-color: var(--accent); color: #b8f5ec; }
+      .step .mark { flex: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #0e1512; }
+      .metrics { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+      .metrics li { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 7px 10px; border-radius: 8px; background: var(--surface2); color: #b8f5ec; }
+      .metrics .k { color: var(--muted); min-width: 90px; font-variant-numeric: tabular-nums; }
+      .metrics .v { font-variant-numeric: tabular-nums; }
+      footer { margin-top: 40px; text-align: center; color: #5b6b80; font-size: 11px; line-height: 1.8; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>MetaSaaS 健康检查</h1>
+        <span class="stamp" id="ts"></span>
+      </header>
+      <p class="sub">目标：http://127.0.0.1:3000 · 检查时间 <span id="checktime"></span></p>
+
+      <div class="gauge">
+        <div class="pct"><span id="pct">0</span><small>%</small></div>
+        <div class="bar"><i id="bar"></i></div>
+      </div>
+
+      <div class="steps" id="steps"></div>
+    </div>
+
+    <footer>
+      来源项目：MetaSaaS Platform（/Users/liushiyuwin/meta-saas-platform） · Pi 会话 <span id="sid"></span>
+    </footer>
+
+    <script>
+      const RESULT = [
+        {
+          title: "首页可达性",
+          status: "通过",
+          check: "GET /",
+          metrics: [["HTTP 状态", "200"], ["响应耗时", "0.004s"], ["页面大小", "9086 B"], ["标题", "MetaSaaS"]],
+        },
+        {
+          title: "API 响应",
+          status: "通过",
+          check: "GET /health · GET /api/projects",
+          metrics: [["/health", '{"ok":true}'], ["/api/projects", "HTTP 200，返回 199 个项目"], ["项目样例", "blocked / 生成好奇业务今日数据提醒…"]],
+        },
+        {
+          title: "数据库连接",
+          status: "通过",
+          check: "data/meta-saas.sqlite (SQLite)",
+          metrics: [["完整性", "PRAGMA integrity_check = ok"], ["数据表", "5 张"], ["projects", "199 行"], ["agent_runs", "137 行"], ["tasks", "296 行"], ["checkpoints", "122 行"], ["deferred_questions", "47 行"]],
+        },
+      ];
+      const $ = (id) => document.getElementById(id);
+      function render() {
+        const steps = $("steps");
+        steps.replaceChildren();
+        RESULT.forEach((s, i) => {
+          const card = document.createElement("div");
+          card.className = "step done";
+          const no = document.createElement("div");
+          no.className = "no";
+          no.textContent = "✓";
+          const body = document.createElement("div");
+          const h = document.createElement("h2");
+          h.append(s.title);
+          const mark = document.createElement("span");
+          mark.className = "mark";
+          mark.textContent = "✓";
+          h.appendChild(mark);
+          const p = document.createElement("p");
+          p.textContent = s.check;
+          body.append(h, p);
+          const ul = document.createElement("ul");
+          ul.className = "metrics";
+          s.metrics.forEach(([k, v]) => {
+            const li = document.createElement("li");
+            const kk = document.createElement("span");
+            kk.className = "k";
+            kk.textContent = k;
+            const vv = document.createElement("span");
+            vv.className = "v";
+            vv.textContent = v;
+            li.append(kk, vv);
+            ul.appendChild(li);
+          });
+          body.appendChild(ul);
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = s.status;
+          card.append(no, body, chip);
+          steps.appendChild(card);
+        });
+        $("pct").textContent = 100;
+        $("bar").style.width = "100%";
+      }
+      $("ts").textContent = new Date().toLocaleString("zh-CN", { hour12: false }).replace(/\//g, "-");
+      $("checktime").textContent = new Date().toLocaleString("zh-CN", { hour12: false }).replace(/\//g, "-");
+      $("sid").textContent = "019fda7f-657f-7a2c-91b3-a699312dd9fc";
+      render();
+    </script>
+  </body>
+</html>

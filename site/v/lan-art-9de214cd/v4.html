@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本会话工作总览 · WinBrain Creator OS</title>
+<style>
+  :root { --bg:#0f1419; --card:#171d24; --line:#262e38; --ink:#e6edf3; --muted:#8b98a5; --brand:#58a6ff; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:32px 20px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:26px; }
+  .sub { color:var(--muted); margin:6px 0 24px; font-size:14px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:26px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .stat b { display:block; font-size:22px; color:var(--brand); }
+  .stat span { font-size:12px; color:var(--muted); }
+  .stat.green b { color:var(--ok); }
+  h2 { font-size:18px; margin:26px 0 12px; padding-left:10px; border-left:3px solid var(--brand); }
+  .item { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-bottom:10px; }
+  .item h3 { font-size:15px; color:var(--brand); margin-bottom:4px; }
+  .item .meta { font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .item ul { padding-left:18px; font-size:13.5px; }
+  .item li { margin-bottom:3px; }
+  code { background:#0b0f14; border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+  .tag { display:inline-block; font-size:11px; border-radius:4px; padding:1px 8px; margin-right:6px; vertical-align:middle; }
+  .tag.green { background:#12281a; color:#3fb950; border:1px solid #1f4d2e; }
+  .tag.blue { background:#12283e; color:#79c0ff; border:1px solid #1f4d7a; }
+  .tag.amber { background:#2e2612; color:#e5b568; border:1px solid #5a4a1f; }
+  .svgbox { background:#0b0f14; border:1px solid var(--line); border-radius:10px; padding:14px; overflow-x:auto; margin-bottom:10px; }
+  .next { background:#1a1712; border:1px solid var(--warn); border-radius:10px; padding:14px 18px; font-size:13.5px; }
+  .next b { color:var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>本会话工作总览 · WinBrain Creator OS</h1>
+  <div class="sub">2026-08-07 · 分支 feature/ink-agent-sdk-creator-os · 仓库 winbrain_os-ink-agent-sdk-clean</div>
+
+  <div class="stats">
+    <div class="stat green"><b>194/194</b><span>测试全绿（起点 166/189）</span></div>
+    <div class="stat"><b>14</b><span>提交（11 本会话 + 3 并行 agent merge）</span></div>
+    <div class="stat green"><b>ONTOLOGY_SMOKE_PASS</b><span>codex-spark 打通</span></div>
+    <div class="stat"><b>+535</b><span>业务工厂后端（16 文件）</span></div>
+  </div>
+
+  <h2>① 文档同步（提交 2bc0e00）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag blue">15-agent workflow</span>探索 → 更新 → 验证</div>
+    <ul>
+      <li>10 个 AGENTS.md 同步到最新代码（架构/沙盒安全/前端证据链）</li>
+      <li><code>CLAUDE.md → AGENTS.md</code> 符号链接（单一事实源）</li>
+      <li>验证揪出 3 处 stale 声明并修正（a11y 21/21、canonical ID 14、HTTP 哈希）</li>
+    </ul>
+  </div>
+
+  <h2>② winbrain_os 模板入库（提交 9621674 · Stage 1）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag blue">参考资产</span>585 文件 · 9.6MB · 只读</div>
+    <ul>
+      <li>完整 NestJS/Nx monorepo → <code>assets/reference/winbrain_os-template/</code></li>
+      <li>登记文档：模块清单、契约对比、lift/do-not-lift、RFC 9457 错误码映射</li>
+    </ul>
+  </div>
+
+  <h2>③ data-ontology MCP HTTP 模式（提交 d8d1bf3 + 47402d3 · Stage 2）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag green">hexagonal</span>契约不变 · 4 工具不变</div>
+    <ul>
+      <li><code>data-ontology-http.ts</code>：Streamable HTTP + Bearer token（sha256 timing-safe）+ 每工具 JSONL 审计</li>
+      <li>入口 <code>data-ontology-mcp-http.ts</code>（<code>ONTOLOGY_MCP_TOKEN</code> fail closed）</li>
+      <li>修真 bug：SDK 1.30 单 transport 限制 → 每 session 独立 server；unbound 方法丢 this</li>
+      <li>hexagonal 检查 → 入口绕过 composition root，已收敛（47402d3）</li>
+    </ul>
+  </div>
+
+  <h2>④ Stage 3：23 个测试失败 → 0（提交 a7e8b78）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag amber">正则漂移</span><span class="tag blue">真 bug</span></div>
+    <ul>
+      <li>interaction-contract：evidence 字符串过期、<code>prj-mcp-pick</code> 未登记</li>
+      <li>真 bug：<code>goto</code> ACT 键未加引号 → audit handler 发现正则匹配不到</li>
+      <li>creator-ui/frontend/web-project-create/demo：严格正则 vs 重构后代码（多行/尾逗号/双引号）</li>
+      <li>TUI check 断言过期（"New Agent SDK"→"创建项目"）</li>
+    </ul>
+  </div>
+
+  <h2>⑤ codex-spark 打通 smoke（提交 5d8c8e6 + bb70f50 + 2894557）</h2>
+  <div class="item">
+    <div class="meta"><span class="tag green">ONTOLOGY_SMOKE_PASS</span>gpt-5.3-codex-spark</div>
+    <ul>
+      <li>发现上游 ID <code>gpt-5.3-codex-spark</code>（直连 Codex API 探测）；配置 <code>cli-proxy-api.yaml</code> 别名 + 放行 5.3 家族（已备份）</li>
+      <li>实测窗口 ~500KB → <code>ontologyContext</code> 截断前 25 资产（<code>ONTOLOGY_CONTEXT_ASSET_CAP</code>）</li>
+      <li><code>WINBRAIN_MODEL</code> env 覆盖；代理日志验证请求按目标模型发出</li>
+    </ul>
+  </div>
+
+  <h2>⑥ 业务工厂后端 · 沙盒 A（提交 cbbd286）</h2>
+  <div class="svgbox">
+  <svg viewBox="0 0 920 570" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'PingFang SC',sans-serif">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#8b98a5"/>
+      </marker>
+      <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <!-- 面板标题 -->
+    <rect x="10" y="10" width="900" height="340" rx="10" fill="#12281a" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="28" y="36" fill="#3fb950" font-size="15" font-weight="700">业务工厂 App 生成 · 保存 · 发布闭环（Claude Agent SDK + AgentBay 沙盒 A）</text>
+
+    <!-- TUI 屏 -->
+    <rect x="30" y="58" width="150" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="105" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">TUI 业务工厂</text>
+    <text x="105" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">Enter 构建 · P 发布</text>
+    <text x="105" y="114" fill="#8b98a5" font-size="11" text-anchor="middle">U 回退 · N 新建</text>
+
+    <!-- CloudAgentWorkbench -->
+    <rect x="240" y="58" width="170" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="325" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">CloudAgentWorkbench</text>
+    <text x="325" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">会话状态机</text>
+    <text x="325" y="114" fill="#8b98a5" font-size="11" text-anchor="middle">绑定 appId + projectId</text>
+
+    <!-- AgentBay 沙盒 -->
+    <rect x="470" y="46" width="210" height="90" rx="8" fill="#12283e" stroke="#3fb950" stroke-width="1.4"/>
+    <text x="575" y="68" fill="#e6edf3" font-size="13" text-anchor="middle">AgentBay 沙盒（云端）</text>
+    <text x="575" y="86" fill="#8b98a5" font-size="11" text-anchor="middle">10 白名单工具</text>
+    <text x="575" y="102" fill="#8b98a5" font-size="11" text-anchor="middle">write_file · bash · read_file</text>
+    <text x="575" y="118" fill="#8b98a5" font-size="11" text-anchor="middle">/tmp + /home/wuying 限界</text>
+
+    <!-- 产物拉取 -->
+    <rect x="740" y="58" width="150" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="815" y="80" fill="#e6edf3" font-size="13" text-anchor="middle">/save 拉取产物</text>
+    <text x="815" y="98" fill="#8b98a5" font-size="11" text-anchor="middle">list + preview 端口</text>
+    <text x="815" y="114" fill="#8b98a5" font-size="11" text-anchor="middle">根目录一层</text>
+
+    <!-- 校验 -->
+    <rect x="240" y="160" width="170" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="325" y="182" fill="#e6edf3" font-size="13" text-anchor="middle">validateAppFiles</text>
+    <text x="325" y="200" fill="#8b98a5" font-size="11" text-anchor="middle">1–30 文件 · 1MiB/4MiB</text>
+    <text x="325" y="216" fill="#8b98a5" font-size="11" text-anchor="middle">禁 .env/.pem/.key</text>
+
+    <!-- app 存储 -->
+    <rect x="470" y="160" width="210" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="575" y="182" fill="#e6edf3" font-size="13" text-anchor="middle">app.files + messages</text>
+    <text x="575" y="200" fill="#8b98a5" font-size="11" text-anchor="middle">CodeFile[] · AppChatMessage[]</text>
+    <text x="575" y="216" fill="#8b98a5" font-size="11" text-anchor="middle">operations state 持久化</text>
+
+    <!-- 发布 -->
+    <rect x="30" y="160" width="150" height="66" rx="8" fill="#171d24" stroke="#58a6ff"/>
+    <text x="105" y="182" fill="#e6edf3" font-size="13" text-anchor="middle">publishApp</text>
+    <text x="105" y="200" fill="#8b98a5" font-size="11" text-anchor="middle">blocker 门禁</text>
+    <text x="105" y="216" fill="#8b98a5" font-size="11" text-anchor="middle">→ PUBLISHED</text>
+
+    <!-- HTTP 层 -->
+    <rect x="30" y="262" width="860" height="64" rx="8" fill="#101f2f" stroke="#8b98a5" stroke-width="1"/>
+    <text x="48" y="286" fill="#9aabbd" font-size="12.5" font-weight="700">HTTP /api/v1</text>
+    <text x="48" y="306" fill="#9aabbd" font-size="12">POST /apps/:id/workspace · /apps/:id/publish · /apps/:id/unpublish · GET /apps（带 status/files）</text>
+
+    <!-- 箭头 行1 -->
+    <line x1="180" y1="91" x2="238" y2="91" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <text x="209" y="82" fill="#8b98a5" font-size="10.5" text-anchor="middle">send()</text>
+    <line x1="410" y1="91" x2="468" y2="91" stroke="#3fb950" stroke-width="1.6" marker-end="url(#arrG)"/>
+    <text x="439" y="82" fill="#8b98a5" font-size="10.5" text-anchor="middle">SDK 会话</text>
+    <line x1="680" y1="91" x2="738" y2="91" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <text x="709" y="82" fill="#8b98a5" font-size="10.5" text-anchor="middle">代码产物</text>
+
+    <!-- 箭头 行2 -->
+    <line x1="105" y1="124" x2="105" y2="158" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="325" y1="124" x2="325" y2="158" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="575" y1="136" x2="575" y2="158" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="815" y1="124" x2="815" y2="158" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+
+    <!-- 箭头 行3 -->
+    <line x1="410" y1="193" x2="468" y2="193" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="680" y1="193" x2="738" y2="193" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="180" y1="193" x2="238" y2="193" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+
+    <!-- 回环 -->
+    <path d="M 815 226 C 890 226 890 320 640 320 C 560 320 545 320 545 292" fill="none" stroke="#d29922" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+    <text x="790" y="318" fill="#d29922" font-size="10.5">迭代：改 prompt 再生成</text>
+
+    <!-- 面板 B 保留路径 -->
+    <rect x="10" y="370" width="900" height="120" rx="10" fill="#1a1712" stroke="#d29922" stroke-width="1.2"/>
+    <text x="28" y="396" fill="#d29922" font-size="15" font-weight="700">保留路径 · 沙盒 B（本地 Expert Sandbox）— Creator / 聊天 / 本地执行（未动）</text>
+    <rect x="30" y="412" width="150" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="105" y="434" fill="#e6edf3" font-size="13" text-anchor="middle">Creator 生成</text>
+    <text x="105" y="452" fill="#8b98a5" font-size="11" text-anchor="middle">专家/员工/项目</text>
+    <rect x="240" y="412" width="190" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="335" y="434" fill="#e6edf3" font-size="13" text-anchor="middle">本地 Expert Sandbox</text>
+    <text x="335" y="452" fill="#8b98a5" font-size="11" text-anchor="middle">OS Sandbox + PreToolUse 双门禁</text>
+    <rect x="490" y="412" width="180" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="580" y="434" fill="#e6edf3" font-size="13" text-anchor="middle">完整 SDK 工具集</text>
+    <text x="580" y="452" fill="#8b98a5" font-size="11" text-anchor="middle">.pi/local-sandboxes · 10min 销毁</text>
+    <rect x="730" y="412" width="160" height="52" rx="8" fill="#171d24" stroke="#d29922"/>
+    <text x="810" y="434" fill="#e6edf3" font-size="13" text-anchor="middle">chat-artifacts</text>
+    <text x="810" y="452" fill="#8b98a5" font-size="11" text-anchor="middle">30 天项目导出</text>
+    <line x1="180" y1="438" x2="238" y2="438" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="430" y1="438" x2="488" y2="438" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="670" y1="438" x2="728" y2="438" stroke="#8b98a5" stroke-width="1.6" marker-end="url(#arr)"/>
+  </svg>
+  </div>
+
+  <div class="item">
+    <div class="meta"><span class="tag green">194/194</span><span class="tag blue">hexagonal</span>不抄 UI · 不造假生成 · 域层纯规则</div>
+    <ul>
+      <li><b>域：</b><code>BusinessApp</code> +status/files/messages/publishedAt；<code>src/domain/business-app.ts</code> 纯规则（validateAppFiles 1–30 文件、1MiB/4MiB 上限、禁 .env/.pem/.key、路径穿越拒绝；appPublicationBlocker 无文件不可发布）</li>
+      <li><b>用例：</b><code>updateAppWorkspace</code>（校验保存 → 追加消息 → 已发布自动回 draft）、<code>publishApp</code>/<code>unpublishApp</code>；旧状态文件自动补默认</li>
+      <li><b>HTTP：</b><code>POST /api/v1/apps/:id/workspace|publish|unpublish</code>；business_app 视图含 status/files/messages</li>
+      <li><b>TUI：</b>App 目录行显示 <code>PUBLISHED/DRAFT · AI APP/DASHBOARD · N FILES</code> + 发布日期；<code>P</code> 发布 / <code>U</code> 回退；Cloud Agent 屏 <code>/save</code> 从 AgentBay 沙盒拉取代码产物存 App</li>
+      <li><b>选型：</b>沙盒 A 内置预览/部署 + Web 业务工厂已走 A → 双端一致，沙盒红线不变</li>
+    </ul>
+  </div>
+
+  <h2>待办</h2>
+  <div class="next">
+    <b>剩余：</b>① 业务工厂测试中心（TestCase 执行）与多目标部署（v2） ② <code>/save</code> 嵌套目录产物读取（当前根目录一层） ③ smoke 实时依赖模型冷却状态 ④ 版本快照多版本化（当前 status+publishedAt）
+  </div>
+</div>
+</body>
+</html>

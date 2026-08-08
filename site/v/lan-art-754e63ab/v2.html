@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>迁移任务进度</title>
+    <style>
+      :root {
+        --canvas: #0e1319;
+        --surface: #161e28;
+        --surface2: #1c2633;
+        --line: #263241;
+        --text: #e6edf3;
+        --muted: #8b9bb0;
+        --accent: #2dd4bf;
+        --accent-dim: #155e55;
+        --warn: #fbbf24;
+        --warn-dim: #5c4a15;
+        --idle: #475569;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background:
+          radial-gradient(
+            1200px 500px at 80% -10%,
+            rgba(45, 212, 191, 0.07),
+            transparent 60%
+          ),
+          var(--canvas);
+        color: var(--text);
+        font-family:
+          -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 48px 20px 32px;
+      }
+      .wrap {
+        width: 100%;
+        max-width: 720px;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      .stamp {
+        font-size: 12px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 32px;
+      }
+
+      /* 总进度 */
+      .gauge {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 40px;
+      }
+      .pct {
+        font-size: 44px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        color: var(--accent);
+        min-width: 110px;
+      }
+      .pct small {
+        font-size: 18px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .bar {
+        flex: 1;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--surface2);
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 99px;
+        background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* 阶段轨道 */
+      .rail {
+        position: relative;
+        margin: 0 6px 36px;
+      }
+      .rail::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 21px;
+        height: 2px;
+        background: var(--line);
+      }
+      .rail i {
+        position: absolute;
+        left: 0;
+        top: 21px;
+        height: 2px;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .nodes {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+      }
+      .node {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--surface2);
+        border: 2px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--muted);
+        transition: all 0.3s;
+      }
+      .node.done {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: #0e1512;
+      }
+      .node.active {
+        background: var(--warn-dim);
+        border-color: var(--warn);
+        color: #201a08;
+        box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.12);
+      }
+
+      /* 步骤卡片 */
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .step {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 20px;
+        cursor: pointer;
+        user-select: none;
+        transition:
+          border-color 0.2s,
+          transform 0.15s;
+      }
+      .step:hover {
+        border-color: #33465c;
+        transform: translateY(-1px);
+      }
+      .step .no {
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .step.done .no {
+        background: var(--accent-dim);
+        color: #b8f5ec;
+      }
+      .step.active .no {
+        background: var(--warn-dim);
+        color: #ffe7a3;
+      }
+      .step h2 {
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .step p {
+        color: var(--muted);
+        font-size: 13.5px;
+        line-height: 1.6;
+        margin-top: 4px;
+      }
+      .chip {
+        margin-left: auto;
+        flex: none;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 99px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--surface2);
+      }
+      .step.done .chip {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: #b8f5ec;
+      }
+      .step.active .chip {
+        background: var(--warn-dim);
+        border-color: var(--warn);
+        color: #ffe7a3;
+      }
+      .step .mark {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .step.done .mark {
+        background: var(--accent);
+        color: #0e1512;
+      }
+      .step.active .mark {
+        background: var(--warn);
+        color: #201a08;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+        margin-top: 18px;
+      }
+      .reset {
+        background: none;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        border-radius: 8px;
+        padding: 6px 14px;
+        cursor: pointer;
+        margin: 0 auto;
+        display: block;
+      }
+      .reset:hover {
+        color: var(--text);
+        border-color: #33465c;
+      }
+      footer {
+        margin-top: 40px;
+        text-align: center;
+        color: #5b6b80;
+        font-size: 11px;
+        line-height: 1.8;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>迁移任务进度</h1>
+        <span class="stamp" id="ts"></span>
+      </header>
+      <p class="sub">点击步骤卡片切换状态：待开始 → 进行中 → 已完成</p>
+
+      <div class="gauge">
+        <div class="pct"><span id="pct">0</span><small>%</small></div>
+        <div class="bar"><i id="bar"></i></div>
+      </div>
+
+      <div class="rail">
+        <i id="railline"></i>
+        <div class="nodes" id="nodes"></div>
+      </div>
+
+      <div class="steps" id="steps"></div>
+      <p class="hint" id="hint"></p>
+      <button class="reset" id="reset">全部重置</button>
+    </div>
+
+    <footer>
+      来源：Pi 会话 <span id="sid"></span>（cwd: /Users/liushiyuwin） ·
+      数据仅保存在本浏览器 localStorage
+    </footer>
+
+    <script>
+      const STEPS = [
+        {
+          title: "数据备份",
+          desc: "导出源库全量数据与结构，生成一致性快照并校验备份完整性，确保任何时刻可回滚。",
+        },
+        {
+          title: "迁移脚本",
+          desc: "编写并执行迁移脚本（结构迁移 + 数据搬运），分批次导入，处理类型映射与增量差异。",
+        },
+        {
+          title: "验证",
+          desc: "对比源/目标库的行数、抽样数据与关键查询结果，核对业务链路，通过后切换流量。",
+        },
+      ];
+      const STATUS = ["待开始", "进行中", "已完成"];
+      const KEY = "migration-progress-v2";
+      let saved = null;
+      try {
+        saved = JSON.parse(localStorage.getItem(KEY) || "null");
+      } catch {}
+      const DEFAULT_STATE = [0, 2, 0]; // 第二步（迁移脚本）已完成
+      let state =
+        saved && saved.length === STEPS.length ? saved : [...DEFAULT_STATE];
+
+      const $ = (id) => document.getElementById(id);
+      const statusOf = (s) => (s === 2 ? "done" : s === 1 ? "active" : "");
+
+      function render() {
+        const nodes = $("nodes");
+        nodes.replaceChildren();
+        STEPS.forEach((_, i) => {
+          const n = document.createElement("div");
+          n.className = "node " + statusOf(state[i]);
+          n.textContent = state[i] === 2 ? "✓" : String(i + 1);
+          nodes.appendChild(n);
+        });
+        const steps = $("steps");
+        steps.replaceChildren();
+        STEPS.forEach((s, i) => {
+          const st = statusOf(state[i]);
+          const card = document.createElement("div");
+          card.className = "step " + st;
+          card.dataset.i = i;
+          const no = document.createElement("div");
+          no.className = "no";
+          no.textContent = i + 1;
+          const body = document.createElement("div");
+          const h = document.createElement("h2");
+          h.append(s.title);
+          if (state[i] !== 0) {
+            const mark = document.createElement("span");
+            mark.className = "mark";
+            mark.textContent = state[i] === 2 ? "✓" : "●";
+            h.appendChild(mark);
+          }
+          const p = document.createElement("p");
+          p.textContent = s.desc;
+          body.append(h, p);
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = STATUS[state[i]];
+          card.append(no, body, chip);
+          steps.appendChild(card);
+        });
+        const done = state.filter((s) => s === 2).length,
+          total = STEPS.length;
+        const pct = Math.round((done / total) * 100);
+        $("pct").textContent = pct;
+        $("bar").style.width = pct + "%";
+        $("railline").style.width =
+          (done > 0 ? (done - 0.5) / total : 0) * 100 + "%";
+        const active = state.indexOf(1);
+        $("hint").textContent =
+          active >= 0
+            ? `进行中：${STEPS[active].title}`
+            : done === total
+              ? "全部完成 ✓"
+              : "暂无进行中的步骤";
+        localStorage.setItem(KEY, JSON.stringify(state));
+      }
+
+      $("steps").addEventListener("click", (e) => {
+        const card = e.target.closest(".step");
+        if (!card) return;
+        const i = +card.dataset.i;
+        state[i] = (state[i] + 1) % 3;
+        render();
+      });
+      $("reset").addEventListener("click", () => {
+        state = STEPS.map(() => 0);
+        render();
+      });
+
+      $("ts").textContent = new Date()
+        .toLocaleString("zh-CN", { hour12: false })
+        .replace(/\//g, "-");
+      $("sid").textContent = "019fda72-01f4-7f91-8db8-17c58e290679";
+      render();
+    </script>
+  </body>
+</html>

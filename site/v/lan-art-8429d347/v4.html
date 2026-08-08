@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cc_deepseek Cloud Agent Views 登录提示问题 · 根因与修复方案</title>
+<style>
+  :root { --bg:#0f1115; --card:#161a22; --card2:#1c212c; --border:#2a3040; --text:#e6e9ef; --dim:#8b93a7; --accent:#4f8cff; --warn:#ffb454; --err:#ff6b6b; --ok:#3ddc97; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.6; padding:24px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin-bottom:6px; }
+  .sub { color:var(--dim); font-size:13px; margin-bottom:28px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin-bottom:18px; }
+  h2 { font-size:16px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:500; }
+  .tag.red { background:rgba(255,107,107,.12); color:var(--err); }
+  .tag.blue { background:rgba(79,140,255,.12); color:var(--accent); }
+  .tag.green { background:rgba(61,220,151,.12); color:var(--ok); }
+  .tag.amber { background:rgba(255,180,84,.12); color:var(--warn); }
+  code { background:#232a38; padding:1px 6px; border-radius:4px; font-family:"SF Mono",Menlo,monospace; font-size:12.5px; }
+  pre { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow-x:auto; font-family:"SF Mono",Menlo,monospace; font-size:12px; line-height:1.5; margin:8px 0; }
+  pre .k { color:var(--accent); } pre .c { color:var(--dim); } pre .r { color:var(--err); } pre .g { color:var(--ok); }
+  .flow { display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+  .step { display:flex; gap:10px; align-items:flex-start; }
+  .step .n { min-width:24px; height:24px; border-radius:50%; background:var(--card2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--dim); flex-shrink:0; }
+  .step.bad .n { background:rgba(255,107,107,.15); border-color:var(--err); color:var(--err); }
+  .step.ok .n { background:rgba(61,220,151,.15); border-color:var(--ok); color:var(--ok); }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--dim); font-weight:500; font-size:12px; }
+  .fix { border:1px solid var(--border); border-radius:10px; margin-bottom:14px; overflow:hidden; }
+  .fix .hd { padding:12px 16px; background:var(--card2); display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; }
+  .fix .bd { padding:14px 16px; background:var(--card); }
+  .badge { font-size:11px; padding:2px 10px; border-radius:20px; font-weight:600; }
+  .badge.rec { background:rgba(61,220,151,.15); color:var(--ok); }
+  .badge.safe { background:rgba(255,180,84,.15); color:var(--warn); }
+  ul { padding-left:20px; margin:6px 0; }
+  li { margin-bottom:4px; font-size:13.5px; }
+  .dim { color:var(--dim); font-size:13px; }
+  .prow { color:var(--err); font-weight:600; }
+  .pfix { color:var(--ok); font-weight:600; }
+  .arrow { color:var(--dim); }
+  .btn { display:inline-block; margin-top:10px; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; }
+  .btn.primary { background:var(--accent); color:#fff; }
+  .btn.ghost { background:var(--card2); color:var(--text); border:1px solid var(--border); }
+  .meta { color:var(--dim); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔍 cc_deepseek 的 Cloud Agent Views 登录提示 — 根因与修复方案</h1>
+  <div class="sub">herdr + 侧边 pane 实测复现 · 2026-08-07 · Claude Code 2.1.196 (claudefast-patched)</div>
+
+  <div class="card">
+    <h2><span class="tag red">现象</span> 你看到的</h2>
+    <p>进入 <code>cc_deepseek</code> TUI 后按 <b>← 左方向键</b> 进入 Agent Views（Agents 视图），在底部输入框发消息，新会话立即显示：</p>
+    <pre><span class="r">✻ list files in…    login required — run /login · Invalid API key · Fix external API key</span></pre>
+    <p>打开会话后：</p>
+    <pre><span class="r">⎿  Invalid API key · Fix external API key</span></pre>
+    <p class="dim">主对话（chat）完全正常 —— 只有 Agent Views 里创建的新会话报错。新开会话、进旧会话都一样。</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag blue">复现</span> herdr 侧边 pane 实测</h2>
+    <p>在 herdr 开了测试工作区 + 侧边 pane，完整走了一遍你的操作路径：</p>
+    <div class="flow">
+      <div class="step ok"><div class="n">1</div><div>herdr pane 启动 <code>claude --settings settings.deepseek.json</code>（ccdpsk 等价）</div></div>
+      <div class="step ok"><div class="n">2</div><div><code>send-keys left</code> → 进入 Agent Views，显示会话列表 + <code>describe a task for a new session</code> 输入框</div></div>
+      <div class="step ok"><div class="n">3</div><div><code>send-text</code> + <code>enter</code> 发消息</div></div>
+      <div class="step bad"><div class="n">4</div><div><b>复现</b>：新会话状态 <code>login required — run /login</code>，打开后 <code>Invalid API key</code></div></div>
+    </div>
+    <p class="dim">对照组：同样的环境直接跑 <code>claude --bg "任务"</code>，后台会话 <b>正常完成</b> —— 说明问题只在 Agent Views 的会话创建路径。</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag red">根因</span> 证据链（4 步）</h2>
+
+    <h2 style="font-size:13.5px;margin-top:14px">① 分派进程丢了 ANTHROPIC_BASE_URL</h2>
+    <p>Agent Views 创建会话时，实际进程由 <b>共享 daemon</b> spawn。对比进程环境变量：</p>
+    <table>
+      <tr><th>进程</th><th>ANTHROPIC_API_KEY</th><th>ANTHROPIC_BASE_URL</th><th>ANTHROPIC_AUTH_TOKEN</th></tr>
+      <tr><td>daemon（spawn 者）</td><td class="pfix">✓ DeepSeek key</td><td class="pfix">✓ api.deepseek.com/anthropic</td><td>✓</td></tr>
+      <tr><td><b>分派出的会话</b></td><td class="pfix">✓</td><td class="prow">✗ 丢失</td><td class="prow">✗ 丢失</td></tr>
+    </table>
+
+    <h2 style="font-size:13.5px;margin-top:14px">② 请求打到官方 API → 401</h2>
+    <p>没有 <code>ANTHROPIC_BASE_URL</code>，SDK 默认 <code>https://api.anthropic.com</code>。DeepSeek key 打官方 endpoint → <b>401 Invalid API key</b>。</p>
+
+    <h2 style="font-size:13.5px;margin-top:14px">③ 二进制代码定位（反编译事实）</h2>
+    <p>daemon spawn 分派进程时做 env 净化，<code>ANTHROPIC_BASE_URL</code> 在过滤列表里：</p>
+    <pre><span class="c">// Yto（env 过滤列表）定义：</span>
+Yto = [<span class="r">"ANTHROPIC_BASE_URL"</span>, "_CLAUDE_CODE_ASSUME_FIRST_PARTY_BASE_URL",
+       "ANTHROPIC_BEDROCK_BASE_URL", ...]
+kVo = [...Qto, ...s$t, ...Yto, ...Jto, ...]   <span class="c">// BASE_URL 被收进 kVo</span>
+
+<span class="c">// daemon spawn 分派进程：</span>
+for (let a of kVo) <span class="r">if (!e.env?.[a]) delete i[a];</span>   <span class="c">// ← 白名单没有 BASE_URL → 删掉</span>
+...
+else if (s.ANTHROPIC_BASE_URL) delete i.ANTHROPIC_AUTH_TOKEN;  <span class="c">// AUTH_TOKEN 也被删</span></pre>
+    <p class="dim">主进程传给 daemon 的 env 白名单只含 API_KEY + 模型，不含 BASE_URL（实测：即使主进程 OS env 里 export 了 BASE_URL，分派进程仍然拿不到）。</p>
+
+    <h2 style="font-size:13.5px;margin-top:14px">④ 为什么主对话正常</h2>
+    <p>主对话由 ccdpsk 主进程自己跑，<code>--settings settings.deepseek.json</code> 的 env 直接注入自身 → DeepSeek 配置完整。只有 daemon 分派的会话走过滤链。</p>
+
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:13.5px">
+      <b>一句话根因</b>：Agent Views 的分派会话由 daemon spawn，daemon 的 env 净化把 <code>ANTHROPIC_BASE_URL</code> 过滤掉了；第三方 endpoint（DeepSeek）没了 BASE_URL 就打到官方 API，DeepSeek key 无效 → 显示「login required / Invalid API key」。这是官方对第三方 endpoint 的兼容性缺陷，不是 DeepSeek key 的问题。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag green">修复方案</span> 请你抉择</h2>
+
+    <div class="fix">
+      <div class="hd"><span class="badge rec">方案 A · 推荐 · 治本</span> 字节级 patch claudefast：保住 BASE_URL</div>
+      <div class="bd">
+        <p>给已有的 <code>claudefast-patch</code>（已做 200k 钳制解除补丁）加第二处字节补丁：把 Yto 过滤列表里的 <code>"ANTHROPIC_BASE_URL"</code> 等长替换为无效名 <code>"ANTHROPIC_BASEURLX"</code>（18→18 字符，已确认二进制中该序列唯一、可精确命中）。效果：daemon 分派进程保留 <code>ANTHROPIC_BASE_URL</code> → 请求发往 DeepSeek → Agent Views 会话正常。</p>
+        <ul>
+          <li>✅ 根治：Agent Views、未来所有 daemon 分派路径都正常</li>
+          <li>✅ 与现有 patch 架构一致（claude 升级自动重建，仅需回归验证一次）</li>
+          <li>⚠️ 需要<b>重启一次 claude daemon</b>（共享进程，重启瞬间其它后台会话短暂中断，自动恢复）</li>
+          <li>⚠️ 若机器上官方版 claude 先起 daemon，过滤逻辑仍走旧代码 —— 需要保证 daemon 是 patched 版</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="fix">
+      <div class="hd"><span class="badge safe">方案 B · 保底 · 零风险</span> 禁用 Agent Views</div>
+      <div class="bd">
+        <p>ccdpsk 函数里加 <code>CLAUDE_CODE_DISABLE_AGENT_VIEW=1</code>（二进制已内置支持：<code>Disable agent view (claude agents, --bg, /background…)</code>）。左键不再进入 Agent Views，回到普通对话。</p>
+        <ul>
+          <li>✅ 立即生效、零风险、不用动二进制</li>
+          <li>❌ 失去 Agent Views（会话列表 / 后台任务管理 / 分派）功能</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="fix">
+      <div class="hd"><span class="badge safe">方案 C · 零改动</span> 接受现状，用其它入口跑后台任务</div>
+      <div class="bd">
+        <p>Agent Views 里发消息会报错，但 <code>--bg</code> / <code>/background</code> 直跑正常（已实测）。后台任务用这些入口，Agent Views 仅当只读的会话列表用（点击"发送提示词"之外的浏览操作可用）。</p>
+        <ul>
+          <li>✅ 零改动</li>
+          <li>❌ 体验差：Agent Views 的输入框是坏的，容易误触报错</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="tag blue">实施预览</span> 方案 A 的改动长这样</h2>
+    <pre><span class="c"># claudefast-patch.py 追加第二个 patch：</span>
+<span class="c"># 目标：daemon 分派会话保留 ANTHROPIC_BASE_URL（第三方 endpoint 必需）</span>
+<span class="c"># 原串： "ANTHROPIC_BASE_URL","_CLAUDE_CODE_ASSUME_FIRST_PARTY_BASE_URL"</span>
+<span class="c"># 替换： "ANTHROPIC_BASEURLX","_CLAUDE_CODE_ASSUME_FIRST_PARTY_BASE_URL"   (等长 20B)</span>
+<span class="c"># 验证：分派进程 env 应含 ANTHROPIC_BASE_URL=api.deepseek.com/anthropic</span>
+<span class="c"># 回归：claude 自升级后自动重建，需重验一次</span></pre>
+  </div>
+
+  <div class="card" style="text-align:center;padding:16px">
+    <div style="font-size:13px;color:var(--dim)">建议组合：<b style="color:var(--text)">先上方案 B 保底 → 实施 A 并验证 → 验证通过后撤掉 B</b></div>
+    <a class="btn primary" href="#" onclick="alert('在 Claude Code 会话里告诉我你的选择即可')">在会话里回复：A / B / C / A+B</a>
+  </div>
+</div>
+</body>
+</html>
