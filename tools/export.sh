@@ -61,7 +61,11 @@ page = f"""<!DOCTYPE html>
 <ul>{rows}</ul>
 </body></html>"""
 (site / "index.html").write_text(page)
-print(f"index.html: {len(arts)} artifacts")
+# 供首页 artifact / 外部 fetch 的动态列表(跨域 CORS: GitHub Pages 允许)
+meta = [{"id": a["id"], "title": a.get("title") or a["id"], "updated_at": a.get("updated_at", ""),
+         "version_count": a.get("version_count", 1), "emoji": a.get("emoji", "")} for a in arts]
+(site / "artifacts.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
+print(f"index.html: {len(arts)} artifacts + artifacts.json")
 PYEOF
 
 # 3. 每个 artifact 生成包装页(iframe + 版本切换)
